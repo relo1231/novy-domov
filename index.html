@@ -1,0 +1,1419 @@
+<!DOCTYPE html>
+<html lang="sk" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nový domov – nákupný zoznam</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #ffffff; --bg-subtle: #f7f7f7; --bg-card: #ffffff;
+      --text: #1a1a1a; --text-muted: #6b7280; --text-dim: #9ca3af;
+      --border: #e5e7eb; --border-subtle: #f0f0f0;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
+      --shadow-md: 0 4px 20px rgba(0,0,0,.1);
+      --radius-card: 12px; --radius-pill: 999px; --radius-check: 6px;
+      --header-h: 64px; --progress-h: 52px;
+    }
+    [data-theme="dark"] {
+      --bg: #0f0f0f; --bg-subtle: #181818; --bg-card: #1c1c1c;
+      --text: #e8e8e8; --text-muted: #9ca3af; --text-dim: #6b7280;
+      --border: #2a2a2a; --border-subtle: #222222; --shadow-sm: none; --shadow-md: none;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px;
+      background: var(--bg); color: var(--text); min-height: 100vh;
+      transition: background .2s, color .2s;
+    }
+
+    /* ── LOADING ── */
+    .loading-screen {
+      min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 16px;
+    }
+    .spinner {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 3px solid var(--border); border-top-color: #1D9E75;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-size: 14px; color: var(--text-muted); }
+
+    /* ── LOGIN ── */
+    .login-screen {
+      min-height: 100vh; display: flex; align-items: center;
+      justify-content: center; padding: 20px; background: var(--bg);
+    }
+    .login-card {
+      width: 100%; max-width: 380px; background: var(--bg-card);
+      border: 1px solid var(--border); border-radius: 18px;
+      padding: 36px 32px; box-shadow: var(--shadow-md);
+    }
+    .login-logo { font-size: 32px; text-align: center; margin-bottom: 12px; }
+    .login-title {
+      font-family: 'Outfit', sans-serif; font-size: 22px; font-weight: 700;
+      text-align: center; margin-bottom: 4px;
+    }
+    .login-subtitle { color: var(--text-muted); font-size: 13px; text-align: center; margin-bottom: 28px; }
+    .form-group { margin-bottom: 14px; }
+    .form-label { display: block; font-size: 12px; font-weight: 500; color: var(--text-muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: .04em; }
+    .form-input {
+      width: 100%; height: 42px; padding: 0 12px;
+      border-radius: 8px; border: 1px solid var(--border);
+      background: var(--bg-subtle); color: var(--text);
+      font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none;
+      transition: border-color .15s;
+    }
+    .form-input:focus { border-color: #1D9E75; background: var(--bg); }
+    .btn-login {
+      width: 100%; height: 42px; border-radius: 8px; border: none;
+      background: #1D9E75; color: #fff;
+      font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: background .15s; margin-top: 8px;
+    }
+    .btn-login:hover { background: #178a65; }
+    .btn-login:disabled { opacity: .55; cursor: not-allowed; }
+    .login-error {
+      background: #ef444415; color: #dc2626; border: 1px solid #ef444430;
+      border-radius: 8px; padding: 10px 12px; font-size: 13px; margin-top: 12px;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      position: sticky; top: 0; z-index: 100; height: var(--header-h);
+      background: var(--bg); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 20px; gap: 12px;
+    }
+    .header-left { display: flex; align-items: center; gap: 10px; }
+    .header-icon { font-size: 24px; color: #1D9E75; }
+    .header-title { font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 700; line-height: 1.1; }
+    .header-subtitle { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; }
+    .header-right { display: flex; align-items: center; gap: 8px; }
+    .user-chip {
+      display: flex; align-items: center; gap: 7px;
+      padding: 0 10px 0 6px; height: 34px; border-radius: var(--radius-pill);
+      border: 1px solid var(--border); background: var(--bg-subtle);
+      font-size: 13px; font-weight: 500; color: var(--text-muted);
+    }
+    .user-avatar {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: #1D9E75; color: #fff;
+      font-size: 11px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .btn-icon {
+      width: 34px; height: 34px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--bg-subtle);
+      color: var(--text-muted); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 17px; transition: all .15s;
+    }
+    .btn-icon:hover { background: var(--border); color: var(--text); }
+    .btn-export {
+      display: flex; align-items: center; gap: 5px;
+      padding: 0 12px; height: 34px; border-radius: var(--radius-pill);
+      border: 1px solid var(--border); background: var(--bg-subtle);
+      color: var(--text-muted); font-family: 'DM Sans', sans-serif;
+      font-size: 13px; font-weight: 500; cursor: pointer; transition: all .15s; white-space: nowrap;
+    }
+    .btn-export:hover { background: var(--border); color: var(--text); }
+
+    /* ── PROGRESS ── */
+    .progress-sticky {
+      position: sticky; top: var(--header-h); z-index: 99;
+      background: var(--bg); border-bottom: 1px solid var(--border); padding: 10px 20px;
+    }
+    .progress-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .progress-label { font-family: 'Outfit', sans-serif; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; }
+    .progress-count { font-size: 12px; font-weight: 500; color: var(--text-muted); }
+    .progress-track { height: 6px; background: var(--border); border-radius: var(--radius-pill); overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: var(--radius-pill); transition: width .4s ease, background .4s ease; }
+
+    /* ── TABS ── */
+    .tab-bar-wrapper {
+      position: sticky; top: calc(var(--header-h) + var(--progress-h)); z-index: 98;
+      background: var(--bg); border-bottom: 1px solid var(--border);
+    }
+    .tab-bar { display: flex; overflow-x: auto; gap: 2px; padding: 8px 12px; scrollbar-width: none; }
+    .tab-bar::-webkit-scrollbar { display: none; }
+    .tab {
+      display: flex; align-items: center; gap: 6px; padding: 6px 12px;
+      border-radius: var(--radius-pill); border: none; background: transparent;
+      color: var(--text-muted); font-family: 'DM Sans', sans-serif;
+      font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap;
+      transition: all .15s; flex-shrink: 0;
+    }
+    .tab:hover { background: var(--bg-subtle); color: var(--text); }
+    .tab.tab-active { background: color-mix(in srgb, var(--tab-color,#1D9E75) 15%, transparent); color: var(--tab-color,#1D9E75); }
+    .tab .ti { font-size: 16px; }
+    .tab-badge {
+      font-size: 11px; font-weight: 500;
+      background: var(--bg-subtle); color: var(--text-dim);
+      padding: 1px 6px; border-radius: var(--radius-pill); border: 1px solid var(--border);
+    }
+    .tab.tab-active .tab-badge {
+      background: color-mix(in srgb, var(--tab-color,#1D9E75) 20%, transparent);
+      color: var(--tab-color,#1D9E75);
+      border-color: color-mix(in srgb, var(--tab-color,#1D9E75) 30%, transparent);
+    }
+
+    /* ── FILTER BAR ── */
+    .filter-bar { padding: 12px 20px; display: flex; flex-direction: column; gap: 10px; border-bottom: 1px solid var(--border-subtle); }
+    .search-wrapper { position: relative; display: flex; align-items: center; }
+    .search-icon { position: absolute; left: 12px; color: var(--text-dim); font-size: 16px; pointer-events: none; }
+    .search-input {
+      width: 100%; height: 38px; padding: 0 36px 0 38px;
+      border-radius: var(--radius-pill); border: 1px solid var(--border);
+      background: var(--bg-subtle); color: var(--text);
+      font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; transition: border-color .15s;
+    }
+    .search-input:focus { border-color: #1D9E75; background: var(--bg); }
+    .search-input::placeholder { color: var(--text-dim); }
+    .search-clear {
+      position: absolute; right: 10px; width: 22px; height: 22px;
+      border-radius: 50%; border: none; background: var(--text-dim); color: var(--bg);
+      cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px;
+    }
+    .filter-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+    .pill {
+      display: inline-flex; align-items: center; padding: 4px 12px;
+      border-radius: var(--radius-pill); border: 1px solid var(--border);
+      background: var(--bg-subtle); color: var(--text-muted);
+      font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500;
+      cursor: pointer; transition: all .15s; white-space: nowrap;
+    }
+    .pill:hover { border-color: var(--text-muted); color: var(--text); }
+    .pill.pill-active { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+    /* ── CONTENT ── */
+    .content { padding: 16px 20px 80px; max-width: 920px; margin: 0 auto; }
+
+    /* ── ROOM ── */
+    .room-section { margin-bottom: 28px; }
+    .room-header {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 12px; padding: 16px 18px;
+      background: var(--bg-card); border-radius: var(--radius-card) var(--radius-card) 0 0;
+      border: 1px solid var(--border); border-bottom: none;
+    }
+    .room-header-left { display: flex; align-items: center; gap: 12px; }
+    .room-icon-wrap { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+    .room-title { font-family: 'Outfit', sans-serif; font-size: 17px; font-weight: 600; }
+    .room-progress-text { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+    .room-header-right { display: flex; align-items: center; gap: 12px; }
+    .room-progress-track { width: 100px; height: 5px; background: var(--border); border-radius: var(--radius-pill); overflow: hidden; }
+    .room-progress-fill { height: 100%; border-radius: var(--radius-pill); transition: width .4s ease; }
+    .room-actions { display: flex; gap: 6px; }
+    .btn-room-action {
+      display: flex; align-items: center; gap: 4px; padding: 5px 10px;
+      border-radius: 6px; border: 1px solid var(--border); background: var(--bg-subtle);
+      color: var(--text-muted); font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500;
+      cursor: pointer; transition: all .15s; white-space: nowrap;
+    }
+    .btn-room-action:hover { background: var(--border); color: var(--text); }
+    .btn-room-action .ti { font-size: 14px; }
+    .btn-room-reset:hover { color: #ef4444; border-color: #ef444440; background: #ef444412; }
+
+    /* ── CATEGORIES ── */
+    .categories { border: 1px solid var(--border); border-radius: 0 0 var(--radius-card) var(--radius-card); overflow: hidden; background: var(--bg-card); box-shadow: var(--shadow-sm); }
+    .category { border-bottom: 1px solid var(--border-subtle); }
+    .category:last-child { border-bottom: none; }
+    .category-header {
+      width: 100%; display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 16px; background: none; border: none;
+      border-left: 3px solid var(--room-color,#1D9E75);
+      cursor: pointer; color: var(--text); transition: background .15s; text-align: left;
+    }
+    .category-header:hover { background: var(--bg-subtle); }
+    .category-title { font-family: 'Outfit', sans-serif; font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; }
+    .category-header-right { display: flex; align-items: center; gap: 8px; }
+    .category-badge { font-size: 11px; font-weight: 500; color: var(--text-dim); background: var(--bg-subtle); padding: 2px 7px; border-radius: var(--radius-pill); border: 1px solid var(--border); }
+    .category-chevron { font-size: 16px; color: var(--text-dim); transition: transform .2s; }
+    .category.collapsed .category-chevron { transform: rotate(-90deg); }
+    .category-items { overflow: hidden; }
+    .category.collapsed .category-items { display: none; }
+
+    /* ── ITEM ROW ── */
+    .item-row {
+      display: flex; align-items: flex-start; gap: 8px;
+      padding: 9px 14px 9px 18px; transition: background .1s;
+    }
+    .item-row:hover { background: var(--bg-subtle); }
+    .item-row.item-checked .item-name { text-decoration: line-through; color: var(--text-dim); }
+    .item-row.item-checked { opacity: .65; }
+    @keyframes item-flash {
+      0%   { background: #22c55e28; }
+      100% { background: transparent; }
+    }
+    .item-row.flash { animation: item-flash .9s ease-out; }
+
+    .checkbox {
+      width: 20px; min-width: 20px; height: 20px; margin-top: 1px;
+      border-radius: var(--radius-check); border: 2px solid var(--border);
+      background: var(--bg); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s; padding: 0; flex-shrink: 0;
+    }
+    .checkbox:hover { border-color: var(--text-muted); }
+    .checkbox.checkbox-checked { background: var(--check-color,#1D9E75); border-color: var(--check-color,#1D9E75); }
+    .check-icon { width: 12px; height: 12px; opacity: 0; transform: scale(.5); transition: opacity .15s, transform .15s; }
+    .checkbox.checkbox-checked .check-icon { opacity: 1; transform: scale(1); }
+
+    .item-name-wrap { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .item-name { font-size: 14px; color: var(--text); transition: color .15s; }
+    .item-meta {
+      display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
+      font-size: 11px; color: var(--text-dim); line-height: 1.4;
+    }
+    .item-meta .ti { font-size: 11px; }
+    .meta-sep { color: var(--border); }
+
+    .priority-badge { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: var(--radius-pill); flex-shrink: 0; margin-top: 1px; }
+    .badge-must { background: #ef444418; color: #dc2626; border: 1px solid #ef444430; }
+    [data-theme="dark"] .badge-must { background: #ef444420; color: #f87171; }
+    .badge-optional { background: #f59e0b18; color: #d97706; border: 1px solid #f59e0b30; }
+    [data-theme="dark"] .badge-optional { background: #f59e0b20; color: #fbbf24; }
+
+    /* ── STORE BADGES ── */
+    .store-badges { display: flex; gap: 4px; align-items: flex-start; flex-shrink: 0; padding-top: 1px; }
+    .store-badge {
+      display: inline-flex; align-items: center; padding: 2px 7px;
+      border-radius: var(--radius-pill); font-size: 11px; font-weight: 500;
+      text-decoration: none; white-space: nowrap;
+      border-width: 0.5px; border-style: solid; line-height: 1.4;
+      transition: background .15s;
+    }
+    .store-mobile { display: none; position: relative; padding-top: 1px; }
+    .store-cart-btn {
+      width: 28px; height: 28px; border-radius: 6px;
+      border: 1px solid var(--border); background: var(--bg-subtle);
+      cursor: pointer; font-size: 14px;
+      display: flex; align-items: center; justify-content: center; transition: background .15s;
+    }
+    .store-cart-btn:hover { background: var(--border); }
+    .store-dropdown {
+      display: none; position: absolute; right: 0; top: calc(100% + 4px);
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.12);
+      z-index: 200; min-width: 120px; overflow: hidden;
+    }
+    .store-dropdown.open { display: block; }
+    .store-dropdown-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 9px 14px; text-decoration: none;
+      font-size: 13px; font-weight: 500; transition: background .12s;
+    }
+    .store-dropdown-item:hover { background: var(--bg-subtle); }
+    .store-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 1000;
+      display: flex; align-items: center; justify-content: center; padding: 20px;
+      opacity: 0; pointer-events: none; transition: opacity .2s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 18px; width: 100%; max-width: 400px;
+      box-shadow: 0 24px 60px rgba(0,0,0,.2);
+      transform: translateY(14px); transition: transform .2s;
+      overflow: hidden;
+    }
+    .modal-overlay.open .modal { transform: translateY(0); }
+    .modal-header { padding: 22px 22px 0; }
+    .modal-room-tag {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 11px; font-weight: 600; padding: 2px 8px;
+      border-radius: var(--radius-pill); margin-bottom: 8px;
+      text-transform: uppercase; letter-spacing: .04em;
+    }
+    .modal-room-tag .ti { font-size: 12px; }
+    .modal-item-name { font-family: 'Outfit', sans-serif; font-size: 17px; font-weight: 600; }
+    .modal-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 4px; margin-bottom: 2px; }
+    .modal-stores { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 14px 22px; }
+    .modal-store-btn {
+      padding: 11px 8px; border-radius: 10px; border: 1.5px solid var(--border);
+      background: var(--bg-subtle); cursor: pointer;
+      font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+      transition: all .15s; text-align: center; color: var(--text-muted);
+    }
+    .modal-store-btn:hover { border-color: var(--text-muted); color: var(--text); }
+    .modal-store-btn.selected { color: var(--sc); border-color: var(--sc); background: color-mix(in srgb, var(--sc) 12%, transparent); }
+    .modal-custom { padding: 0 22px 8px; }
+    .modal-custom-input {
+      width: 100%; height: 38px; padding: 0 12px;
+      border-radius: 8px; border: 1px solid var(--border);
+      background: var(--bg-subtle); color: var(--text);
+      font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; transition: border-color .15s;
+    }
+    .modal-custom-input:focus { border-color: #1D9E75; }
+    .modal-footer {
+      display: flex; gap: 8px; padding: 12px 22px 22px;
+      border-top: 1px solid var(--border);
+    }
+    .btn-modal-cancel {
+      flex: 1; height: 42px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--bg-subtle);
+      color: var(--text-muted); font-family: 'DM Sans', sans-serif;
+      font-size: 13px; font-weight: 500; cursor: pointer; transition: background .15s;
+    }
+    .btn-modal-cancel:hover { background: var(--border); }
+    .btn-modal-confirm {
+      flex: 2; height: 42px; border-radius: 8px; border: none;
+      background: #1D9E75; color: #fff;
+      font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: background .15s;
+    }
+    .btn-modal-confirm:hover { background: #178a65; }
+    .btn-modal-confirm:disabled { opacity: .45; cursor: not-allowed; }
+
+    /* ── EMPTY + MISC ── */
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+    .empty-state .ti { font-size: 40px; margin-bottom: 12px; display: block; opacity: .4; }
+
+    @media (max-width: 660px) {
+      .store-badges { display: none; }
+      .store-mobile { display: block; }
+      .header { padding: 0 14px; }
+      .btn-export span { display: none; }
+      .content { padding: 10px 10px 80px; }
+      .filter-bar { padding: 10px 12px; }
+      .room-progress-track { display: none; }
+      .room-header { padding: 12px 14px; }
+      .item-row { padding: 9px 10px 9px 14px; }
+      .tab-bar { padding: 6px 8px; }
+      .modal-stores { grid-template-columns: 1fr 1fr; }
+    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <!-- Modal always in DOM -->
+  <div id="modal-overlay" class="modal-overlay" onclick="closeModal()">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-room-tag" id="modal-room-tag"></div>
+        <h3 class="modal-item-name" id="modal-item-name"></h3>
+        <p class="modal-subtitle">Odkiaľ si to kúpil/a?</p>
+      </div>
+      <div class="modal-stores" id="modal-stores"></div>
+      <div class="modal-custom" id="modal-custom" style="display:none">
+        <input type="text" class="modal-custom-input" id="modal-custom-input" placeholder="Názov obchodu…">
+      </div>
+      <div class="modal-footer">
+        <button class="btn-modal-cancel" onclick="closeModal()">Zrušiť</button>
+        <button class="btn-modal-confirm" id="modal-confirm" onclick="confirmCheck()" disabled>
+          <i class="ti ti-shopping-cart"></i> Potvrdiť nákup
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script>
+    // ═══════════════════════════════════════════════════════════════
+    // CONFIG  –  fill in after creating Supabase project
+    // ═══════════════════════════════════════════════════════════════
+    const CONFIG = {
+      supabaseUrl:     'https://zoxgppvqiestiazvcrvc.supabase.co',
+      supabaseAnonKey: 'sb_publishable_twPEOcWpboCQaDdvRSyvfg_o87p58Az',
+    };
+
+    const USER_DISPLAY = {
+      'relo1231@gmail.com':            'Lukáš',
+      'michaela.palsova26@gmail.com':  'Michaela',
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    // DATA
+    // ═══════════════════════════════════════════════════════════════
+
+    const ROOMS = [
+      {
+        id: "kuchyna", label: "Kuchyňa", icon: "ti-tools-kitchen-2", color: "#E8A020",
+        categories: [
+          { label: "Riad & poháre", items: [
+            { n: "Malé taniere", p: "must" }, { n: "Veľké taniere", p: "must" },
+            { n: "Hlboké taniere (polievkové)", p: "must" }, { n: "Misky (raňajkové / šalátové)", p: "must" },
+            { n: "Poháre na vodu", p: "must" }, { n: "Hrnčeky na čaj / horúce nápoje", p: "must" },
+            { n: "Šálky na kávu (espresso)", p: "optional" }, { n: "Vinové poháre", p: "optional" }
+          ]},
+          { label: "Príbor & nástroje", items: [
+            { n: "Príbor sada (lyžice, vidličky, nože)", p: "must" }, { n: "Kuchársky nôž", p: "must" },
+            { n: "Nôž na chlieb", p: "must" }, { n: "Brúska na nože", p: "optional" },
+            { n: "Varechy (drevená + silikónová)", p: "must" }, { n: "Naberačka", p: "must" },
+            { n: "Škrabka na zeleninu", p: "must" }, { n: "Strúhadlo", p: "must" },
+            { n: "Otvárač na konzervy", p: "must" }, { n: "Pučák na cesnak", p: "optional" },
+            { n: "Cedník", p: "must" }
+          ]},
+          { label: "Hrnce & panvice", items: [
+            { n: "Malý hrniec (1–1,5 l)", p: "must" }, { n: "Stredný hrniec (2–3 l)", p: "must" },
+            { n: "Veľký hrniec (5+ l)", p: "must" }, { n: "Nepriľnavá panvica 1 (20–24 cm)", p: "must" },
+            { n: "Nepriľnavá panvica 2 (26–28 cm)", p: "must" }, { n: "Kastról s pokrievkou", p: "optional" }
+          ]},
+          { label: "Pečenie & rúra", items: [
+            { n: "Plech na pečenie", p: "must" }, { n: "Zapekacia misa", p: "optional" },
+            { n: "Chňapky / kuchynské rukavice", p: "must" }, { n: "Pergamenový papier", p: "must", ikea: false }
+          ]},
+          { label: "Úložné pomôcky", items: [
+            { n: "Hermetické nádoby (sada)", p: "must" }, { n: "Potravinová fólia", p: "must", ikea: false },
+            { n: "Alobál", p: "must", ikea: false }, { n: "Kuchynská váha", p: "optional" }
+          ]},
+          { label: "Elektro", items: [
+            { n: "Varná kanvica", p: "must" }, { n: "Tyčový mixér", p: "optional" },
+            { n: "Toster", p: "optional" }, { n: "Kávovar", p: "optional" }
+          ]},
+          { label: "Čistenie & organizácia", items: [
+            { n: "Odkvapkávač na riad", p: "must" }, { n: "Kôš na odpadky", p: "must" },
+            { n: "Kuchynské utierky", p: "must", ikea: false }, { n: "Špongie na riad", p: "must", ikea: false }
+          ]}
+        ]
+      },
+      {
+        id: "obyvacka", label: "Obývačka", icon: "ti-sofa", color: "#1D9E75",
+        categories: [
+          { label: "Sedenie", items: [
+            { n: "Sedačka / gauč", p: "must" }, { n: "Kreslá (1–2 ks)", p: "optional" }
+          ]},
+          { label: "Stolíky & úložisko", items: [
+            { n: "Konferenčný stolík", p: "must" }, { n: "TV stolík / skrinka", p: "must" },
+            { n: "Knižnica / regál", p: "optional" }
+          ]},
+          { label: "Osvetlenie", items: [
+            { n: "Stojacia lampa", p: "must" }, { n: "Predlžovačky (2–3 ks)", p: "must", ikea: false }
+          ]},
+          { label: "Dekorácie & textil", items: [
+            { n: "Závesy / záclony", p: "must" }, { n: "Koberec", p: "must" },
+            { n: "Vankúše (dekoratívne)", p: "must" }, { n: "Deka / pléd", p: "must" },
+            { n: "Obrazy / dekorácie na stenu", p: "optional" }
+          ]},
+          { label: "Elektronika", items: [
+            { n: "TV", p: "must", ikea: false }, { n: "Soundbar", p: "optional", ikea: false },
+            { n: "WiFi router", p: "must", ikea: false }
+          ]},
+          { label: "Ostatné", items: [
+            { n: "Čistiace potreby na čalúnenie", p: "optional", ikea: false }
+          ]}
+        ]
+      },
+      {
+        id: "spalnya", label: "Spálňa", icon: "ti-bed", color: "#7F77DD",
+        categories: [
+          { label: "Nábytok", items: [
+            { n: "Posteľ s roštom", p: "must" }, { n: "Matrac", p: "must" },
+            { n: "Nočný stolík 1", p: "must" }, { n: "Nočný stolík 2", p: "must" },
+            { n: "Skriňa / šatník", p: "must" }, { n: "Prádelník", p: "optional" }
+          ]},
+          { label: "Lôžkoviny", items: [
+            { n: "Posteľná bielizeň – sada 1", p: "must" }, { n: "Posteľná bielizeň – sada 2", p: "must" },
+            { n: "Letná prikrývka", p: "must" }, { n: "Zimná prikrývka", p: "must" },
+            { n: "Vankúše (2+ ks)", p: "must" }, { n: "Chrániče na matrac", p: "optional" }
+          ]},
+          { label: "Osvetlenie", items: [
+            { n: "Nočná lampa 1", p: "must" }, { n: "Nočná lampa 2", p: "must" },
+            { n: "Stmievač (ak chýba)", p: "optional" }
+          ]},
+          { label: "Úložisko & doplnky", items: [
+            { n: "Záclony / závesy (zatemňovacie)", p: "must" },
+            { n: "Zrkadlo", p: "must" }, { n: "Vešiak na oblečenie", p: "must" }
+          ]}
+        ]
+      },
+      {
+        id: "detska", label: "Detská izba", icon: "ti-baby-carriage", color: "#D85A30",
+        categories: [
+          { label: "Nábytok", items: [
+            { n: "Detská postieľka / rozšíriteľná posteľ", p: "must" }, { n: "Matrac detský", p: "must" },
+            { n: "Prebaľovací pult (pre bábätko)", p: "optional" }, { n: "Skriňa", p: "must" },
+            { n: "Regál na hračky", p: "must" }, { n: "Police (nástenné)", p: "optional" }
+          ]},
+          { label: "Spanie", items: [
+            { n: "Posteľná bielizeň detská", p: "must" }, { n: "Spacák / detská deka", p: "must" },
+            { n: "Detský vankúš", p: "must" }
+          ]},
+          { label: "Hračky & úložisko", items: [
+            { n: "Koberec mäkký (hrací)", p: "must" }, { n: "Úložné boxy na hračky", p: "must" }
+          ]},
+          { label: "Osvetlenie", items: [
+            { n: "Nočná lampička", p: "must" }, { n: "Záclony zatemňovacie", p: "must" }
+          ]},
+          { label: "Bezpečnosť", items: [
+            { n: "Zábrany na schody", p: "must", ikea: false }, { n: "Záslepky na elektrické zásuvky", p: "must", ikea: false },
+            { n: "Rohové chrániče nábytku", p: "must", ikea: false }, { n: "Monitor dieťaťa (odpočúvačka)", p: "must", ikea: false },
+            { n: "Poistky na dvierka skríň", p: "optional", ikea: false }
+          ]}
+        ]
+      },
+      {
+        id: "kupelna", label: "Kúpeľňa", icon: "ti-bath", color: "#378ADD",
+        categories: [
+          { label: "Základné vybavenie", items: [
+            { n: "Sprchový záves + tyč (ak bez dverí)", p: "must" },
+            { n: "Rohož pred sprchou / vaňou", p: "must" }, { n: "Protišmyková podložka do sprchy", p: "must" }
+          ]},
+          { label: "Úložisko", items: [
+            { n: "Kúpeľňová skrinka / regál", p: "must" }, { n: "Zrkadlo (ideálne s osvetlením)", p: "must" },
+            { n: "Koš na bielizeň", p: "must" }, { n: "Koš na odpadky", p: "must" }
+          ]},
+          { label: "Textil", items: [
+            { n: "Sada uterákov – osoba 1 (malý, stredný, veľký)", p: "must" },
+            { n: "Sada uterákov – osoba 2 (malý, stredný, veľký)", p: "must" },
+            { n: "Župan", p: "optional" }
+          ]},
+          { label: "Hygiena & kozmetika", items: [
+            { n: "Dávkovač tekutého mydla", p: "must" }, { n: "Pohár / stojanček na zubné kefky", p: "must" },
+            { n: "Sada na čistenie kúpeľne", p: "must", ikea: false }
+          ]},
+          { label: "Doplnky", items: [
+            { n: "Držiak na toaletný papier", p: "must" }, { n: "Háčiky na uteráky", p: "must" },
+            { n: "Osobná váha", p: "optional", ikea: false }
+          ]}
+        ]
+      },
+      {
+        id: "wc", label: "WC", icon: "ti-toilet-paper", color: "#639922",
+        categories: [
+          { label: "Základné", items: [
+            { n: "WC kefa + stojan", p: "must" }, { n: "Koš na odpadky", p: "must" },
+            { n: "Zásobník / držiak na toaletný papier", p: "must" }, { n: "Záves / dvierka (ak otvorené WC)", p: "optional" }
+          ]},
+          { label: "Doplnky", items: [
+            { n: "Osviežovač vzduchu", p: "must", ikea: false }, { n: "Dezinfekčný čistič", p: "must", ikea: false },
+            { n: "Rohožka", p: "must" }, { n: "Police / poličky (ak je priestor)", p: "optional" }
+          ]}
+        ]
+      },
+      {
+        id: "predsien", label: "Predsieň", icon: "ti-door", color: "#888780",
+        categories: [
+          { label: "Nábytok", items: [
+            { n: "Botník", p: "must" }, { n: "Vešiak na stenu / stojan na oblečenie", p: "must" },
+            { n: "Zrkadlo", p: "must" }, { n: "Lavička na obúvanie", p: "optional" }
+          ]},
+          { label: "Úložisko", items: [
+            { n: "Kľúčovník", p: "must" }, { n: "Police (ak priestor)", p: "optional" }
+          ]},
+          { label: "Osvetlenie", items: [
+            { n: "Lampa / stropné osvetlenie", p: "must" }
+          ]},
+          { label: "Ostatné", items: [
+            { n: "Rohožka vonkajšia", p: "must" }, { n: "Rohožka vnútorná", p: "must" },
+            { n: "Dáždnikový stojan", p: "optional" }
+          ]}
+        ]
+      },
+      {
+        id: "balkon", label: "Balkón", icon: "ti-plant", color: "#3B6D11",
+        categories: [
+          { label: "Sedenie", items: [
+            { n: "Záhradné kreslo / stolička 1", p: "must" }, { n: "Záhradné kreslo / stolička 2", p: "must" },
+            { n: "Skladací stolík", p: "optional" }
+          ]},
+          { label: "Rastliny & doplnky", items: [
+            { n: "Kvetináče – malé", p: "optional" }, { n: "Kvetináče – veľké", p: "optional" },
+            { n: "Podstavce pod kvetináče", p: "optional" },
+            { n: "Pokladač (zavlažovacia kanvica)", p: "optional", ikea: false },
+            { n: "Záhradné náradie (základné)", p: "optional", ikea: false }
+          ]},
+          { label: "Úložisko", items: [
+            { n: "Úložný box na vonkajšie použitie", p: "optional" }
+          ]},
+          { label: "Ostatné", items: [
+            { n: "Vonkajší koberec", p: "must" }, { n: "Vonkajšie osvetlenie / solárne lampáše", p: "optional", ikea: false },
+            { n: "Rohožka", p: "must" }
+          ]}
+        ]
+      }
+    ];
+
+    const STORES = [
+      { id: 'ikea', label: 'IKEA', color: '#0058A3', url: q => `https://www.ikea.com/sk/sk/search/?q=${q}` },
+      { id: 'alza', label: 'Alza', color: '#FF6600', url: q => `https://www.alza.sk/search.htm?exps=${q}` },
+      { id: 'mall', label: 'Mall', color: '#E30613', url: q => `https://www.mall.sk/vyhledavani?q=${q}` }
+    ];
+
+    const STORES_MODAL_EXTRA = { id: 'ine', label: 'Iné', color: '#6b7280' };
+
+    function getStoresForItem(item) {
+      return STORES.filter(s => !(s.id === 'ikea' && item.ikea === false));
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // STATE
+    // ═══════════════════════════════════════════════════════════════
+
+    const COLLAPSE_KEY = 'domov_collapsed';
+    const THEME_KEY    = 'domov_theme';
+
+    let db          = null;
+    let currentUser = null;
+
+    const state = {
+      activeRoom: 'all', search: '', filter: 'all',
+      darkMode: false, collapsed: {},
+      items: {}   // key -> { checked_by, checked_at, store }
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    // SUPABASE
+    // ═══════════════════════════════════════════════════════════════
+
+    async function sbLogin(email, password) {
+      const { data, error } = await db.auth.signInWithPassword({ email, password });
+      return { user: data?.user, error };
+    }
+
+    async function sbLogout() {
+      await db.auth.signOut();
+      currentUser = null;
+      renderLogin();
+    }
+
+    async function loadItems() {
+      const { data, error } = await db.from('checklist_items').select('*');
+      if (error) { console.error('Load error:', error); return; }
+      state.items = {};
+      (data || []).forEach(row => {
+        state.items[row.key] = { checked_by: row.checked_by, checked_at: row.checked_at, store: row.store };
+      });
+    }
+
+    async function saveItem(key, store) {
+      const displayName = USER_DISPLAY[currentUser.email] || currentUser.email.split('@')[0];
+      const now = new Date().toISOString();
+      const row = { key, checked_by: displayName, checked_by_email: currentUser.email, checked_at: now, store, updated_at: now };
+      const { error } = await db.from('checklist_items').upsert(row);
+      if (error) { console.error('Save error:', error); return; }
+      state.items[key] = { checked_by: displayName, checked_at: now, store };
+      updateItemDOM(key);
+      updateAllProgress();
+      if (state.filter === 'unchecked' || state.filter === 'checked') refreshContent();
+    }
+
+    async function deleteItem(key) {
+      const { error } = await db.from('checklist_items').delete().eq('key', key);
+      if (error) { console.error('Delete error:', error); return; }
+      delete state.items[key];
+      updateItemDOM(key);
+      updateAllProgress();
+      if (state.filter === 'unchecked' || state.filter === 'checked') refreshContent();
+    }
+
+    function setupRealtime() {
+      db.channel('checklist_sync')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'checklist_items' }, p => {
+          const r = p.new;
+          state.items[r.key] = { checked_by: r.checked_by, checked_at: r.checked_at, store: r.store };
+          updateItemDOM(r.key, true);
+          updateAllProgress();
+          if (state.filter === 'unchecked' || state.filter === 'checked') refreshContent();
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'checklist_items' }, p => {
+          const r = p.new;
+          state.items[r.key] = { checked_by: r.checked_by, checked_at: r.checked_at, store: r.store };
+          updateItemDOM(r.key, true);
+          updateAllProgress();
+        })
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'checklist_items' }, p => {
+          delete state.items[p.old.key];
+          updateItemDOM(p.old.key, false);
+          updateAllProgress();
+          if (state.filter === 'unchecked' || state.filter === 'checked') refreshContent();
+        })
+        .subscribe();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // HELPERS
+    // ═══════════════════════════════════════════════════════════════
+
+    function itemKey(roomId, ci, ii) { return `${roomId}_${ci}_${ii}`; }
+
+    function parseItemKey(key) {
+      const li = key.lastIndexOf('_');
+      const ii = parseInt(key.slice(li + 1));
+      const rest = key.slice(0, li);
+      const li2 = rest.lastIndexOf('_');
+      const ci = parseInt(rest.slice(li2 + 1));
+      const roomId = rest.slice(0, li2);
+      return { roomId, ci, ii };
+    }
+
+    function escHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function fmtDate(iso) {
+      return new Date(iso).toLocaleDateString('sk-SK', { day: 'numeric', month: 'numeric', year: 'numeric' });
+    }
+
+    function getRoomStats(room) {
+      let t = 0, d = 0;
+      room.categories.forEach((cat, ci) => cat.items.forEach((_, ii) => { t++; if (state.items[itemKey(room.id,ci,ii)]) d++; }));
+      return { total: t, done: d };
+    }
+    function getTotalStats() {
+      return ROOMS.reduce((a,r) => { const s=getRoomStats(r); a.total+=s.total; a.done+=s.done; return a; }, {total:0,done:0});
+    }
+    function getCatStats(room, ci) {
+      let t=0,d=0;
+      room.categories[ci].items.forEach((_,ii)=>{ t++; if(state.items[itemKey(room.id,ci,ii)]) d++; });
+      return {total:t,done:d};
+    }
+    function itemVisible(room, ci, ii) {
+      const item = room.categories[ci].items[ii];
+      const chk  = !!state.items[itemKey(room.id,ci,ii)];
+      if (state.search && !item.n.toLowerCase().includes(state.search.toLowerCase())) return false;
+      switch(state.filter){
+        case 'must':      return item.p==='must';
+        case 'optional':  return item.p==='optional';
+        case 'unchecked': return !chk;
+        case 'checked':   return chk;
+        default: return true;
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // BUILD HTML
+    // ═══════════════════════════════════════════════════════════════
+
+    function buildStoreLinks(item) {
+      const q = encodeURIComponent(item.n);
+      const stores = getStoresForItem(item);
+      const badges = stores.map(s => {
+        const bg = s.color+'14', bdr = s.color+'66';
+        return `<a class="store-badge" href="${s.url(q)}" target="_blank" rel="noopener"
+                   style="color:${s.color};background:${bg};border-color:${bdr}"
+                   onmouseover="this.style.background='${s.color}30'"
+                   onmouseout="this.style.background='${bg}'">${s.label}</a>`;
+      }).join('');
+      const dropItems = stores.map(s =>
+        `<a class="store-dropdown-item" href="${s.url(q)}" target="_blank" rel="noopener">
+          <span class="store-dot" style="background:${s.color}"></span>
+          <span style="color:${s.color}">${s.label}</span>
+        </a>`
+      ).join('');
+      return `<div class="store-badges">${badges}</div>
+              <div class="store-mobile">
+                <button class="store-cart-btn" onclick="openStoreMenu(event,this)">🛒</button>
+                <div class="store-dropdown">${dropItems}</div>
+              </div>`;
+    }
+
+    function buildItem(room, item, ci, ii) {
+      const key  = itemKey(room.id,ci,ii);
+      const meta = state.items[key];
+      const chk  = !!meta;
+      const pLabel = item.p==='must' ? 'nutné' : 'voliteľné';
+      const pClass = item.p==='must' ? 'badge-must' : 'badge-optional';
+      const chkSty = chk ? `style="--check-color:${room.color}"` : '';
+      let metaHTML = '';
+      if (chk && meta) {
+        metaHTML = `<div class="item-meta">
+          <span><i class="ti ti-user"></i> ${escHtml(meta.checked_by)}</span>
+          <span class="meta-sep">·</span>
+          <span><i class="ti ti-calendar"></i> ${fmtDate(meta.checked_at)}</span>
+          <span class="meta-sep">·</span>
+          <span><i class="ti ti-building-store"></i> ${escHtml(meta.store)}</span>
+        </div>`;
+      }
+      return `<div class="item-row${chk?' item-checked':''}" data-key="${key}">
+        <button class="checkbox${chk?' checkbox-checked':''}" data-key="${key}" ${chkSty}>
+          <svg class="check-icon" viewBox="0 0 12 12" fill="none">
+            <polyline points="1.5,6 4.5,9 10.5,3" stroke="white" stroke-width="1.8"
+                      stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="item-name-wrap">
+          <span class="item-name">${escHtml(item.n)}</span>
+          ${metaHTML}
+        </div>
+        <span class="priority-badge ${pClass}">${pLabel}</span>
+        ${buildStoreLinks(item)}
+      </div>`;
+    }
+
+    function buildCategory(room, cat, ci) {
+      const {total,done} = getCatStats(room,ci);
+      const colKey = `${room.id}_${ci}`;
+      const collapsed = !!state.collapsed[colKey];
+      let hasVis = false;
+      for (let ii=0;ii<cat.items.length;ii++) if(itemVisible(room,ci,ii)){hasVis=true;break;}
+      if ((state.search||state.filter!=='all')&&!hasVis) return '';
+      const itemsHTML = cat.items.map((item,ii)=>itemVisible(room,ci,ii)?buildItem(room,item,ci,ii):'').join('');
+      return `<div class="category${collapsed?' collapsed':''}">
+        <button class="category-header" data-collapse="${colKey}" style="--room-color:${room.color}">
+          <span class="category-title">${escHtml(cat.label)}</span>
+          <div class="category-header-right">
+            <span class="category-badge" id="badge-${colKey}">${done}/${total}</span>
+            <i class="ti ti-chevron-down category-chevron"></i>
+          </div>
+        </button>
+        <div class="category-items">${itemsHTML}</div>
+      </div>`;
+    }
+
+    function buildRoomSection(room) {
+      const {total,done} = getRoomStats(room);
+      const pct = total>0?Math.round((done/total)*100):0;
+      let hasVis = false;
+      outer: for(let ci=0;ci<room.categories.length;ci++)
+        for(let ii=0;ii<room.categories[ci].items.length;ii++)
+          if(itemVisible(room,ci,ii)){hasVis=true;break outer;}
+      if((state.search||state.filter!=='all')&&!hasVis) return '';
+      const catsHTML = room.categories.map((cat,ci)=>buildCategory(room,cat,ci)).join('');
+      return `<section class="room-section" data-room="${room.id}">
+        <div class="room-header">
+          <div class="room-header-left">
+            <div class="room-icon-wrap" style="background:${room.color}22;color:${room.color}">
+              <i class="ti ${room.icon}"></i>
+            </div>
+            <div>
+              <h2 class="room-title">${escHtml(room.label)}</h2>
+              <div class="room-progress-text" id="rpt-${room.id}">${done} / ${total} položiek</div>
+            </div>
+          </div>
+          <div class="room-header-right">
+            <div class="room-progress-track">
+              <div class="room-progress-fill" id="rpf-${room.id}" style="width:${pct}%;background:${room.color}"></div>
+            </div>
+            <div class="room-actions">
+              <button class="btn-room-action" data-action="check-all" data-room="${room.id}">
+                <i class="ti ti-circle-check"></i> Všetko
+              </button>
+              <button class="btn-room-action btn-room-reset" data-action="reset" data-room="${room.id}">
+                <i class="ti ti-refresh"></i> Reset
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="categories">${catsHTML}</div>
+      </section>`;
+    }
+
+    function buildContent() {
+      const rooms = state.activeRoom==='all' ? ROOMS : ROOMS.filter(r=>r.id===state.activeRoom);
+      const html = rooms.map(r=>buildRoomSection(r)).join('');
+      return html.trim() ? html : `<div class="empty-state"><i class="ti ti-search"></i><p>Žiadne položky nezodpovedajú hľadaniu.</p></div>`;
+    }
+
+    function buildHeader() {
+      const displayName = USER_DISPLAY[currentUser?.email] || currentUser?.email?.split('@')[0] || '?';
+      const initial = displayName.charAt(0).toUpperCase();
+      return `<header class="header">
+        <div class="header-left">
+          <i class="ti ti-home header-icon"></i>
+          <div><h1 class="header-title">Nový domov</h1><p class="header-subtitle">nákupný zoznam</p></div>
+        </div>
+        <div class="header-right">
+          <div class="user-chip">
+            <div class="user-avatar">${initial}</div>
+            ${displayName}
+          </div>
+          <button class="btn-icon" id="btn-dark" title="Tmavý režim">
+            <i class="ti ${state.darkMode?'ti-sun':'ti-moon'}"></i>
+          </button>
+          <button class="btn-icon" id="btn-logout" title="Odhlásiť sa">
+            <i class="ti ti-logout"></i>
+          </button>
+          <button class="btn-export" id="btn-export">
+            <i class="ti ti-download"></i><span>Exportovať</span>
+          </button>
+        </div>
+      </header>`;
+    }
+
+    function buildProgressBar() {
+      const {total,done} = getTotalStats();
+      const pct = total>0?Math.round((done/total)*100):0;
+      const fill = pct===100?'#22c55e':'#1D9E75';
+      return `<div class="progress-sticky">
+        <div class="progress-info">
+          <span class="progress-label">Celkový postup</span>
+          <span class="progress-count" id="progress-count">${done} / ${total} položiek (${pct}%)</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progress-fill" style="width:${pct}%;background:${fill}"></div>
+        </div>
+      </div>`;
+    }
+
+    function buildTabBar() {
+      const tabs = [
+        {id:'all',label:'Všetky',icon:'ti-layout-grid',color:'#1D9E75',stats:null},
+        ...ROOMS.map(r=>({...r,stats:getRoomStats(r)}))
+      ];
+      const items = tabs.map(t=>{
+        const active = state.activeRoom===t.id;
+        const badge  = t.stats?`<span class="tab-badge">${t.stats.done}/${t.stats.total}</span>`:'';
+        return `<button class="tab${active?' tab-active':''}" data-room="${t.id}"
+                  ${active?`style="--tab-color:${t.color}"`:''}>
+          <i class="ti ${t.icon}"></i><span>${t.label}</span>${badge}
+        </button>`;
+      }).join('');
+      return `<div class="tab-bar-wrapper"><div class="tab-bar" id="tab-bar">${items}</div></div>`;
+    }
+
+    function buildFilterBar() {
+      const filters = [
+        {id:'all',label:'Všetko'},{id:'must',label:'Nutné'},
+        {id:'optional',label:'Voliteľné'},{id:'unchecked',label:'Ešte nenakúpené'},{id:'checked',label:'Hotové'}
+      ];
+      const pills = filters.map(f=>`<button class="pill${state.filter===f.id?' pill-active':''}" data-filter="${f.id}">${f.label}</button>`).join('');
+      const clearBtn = state.search?`<button class="search-clear" id="search-clear"><i class="ti ti-x"></i></button>`:'';
+      return `<div class="filter-bar">
+        <div class="search-wrapper">
+          <i class="ti ti-search search-icon"></i>
+          <input type="text" class="search-input" id="search-input"
+                 placeholder="Hľadať položku…" value="${escHtml(state.search)}" autocomplete="off">
+          ${clearBtn}
+        </div>
+        <div class="filter-pills" id="filter-pills">${pills}</div>
+      </div>`;
+    }
+
+    function buildApp() {
+      return buildHeader()+buildProgressBar()+buildTabBar()+buildFilterBar()
+           + `<main class="content" id="content">${buildContent()}</main>`;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // DOM UPDATES
+    // ═══════════════════════════════════════════════════════════════
+
+    function updateItemDOM(key, flash = false) {
+      const existingRow = document.querySelector(`.item-row[data-key="${key}"]`);
+      if (!existingRow) return;
+      const { roomId, ci, ii } = parseItemKey(key);
+      const room = ROOMS.find(r=>r.id===roomId);
+      if (!room) return;
+      const item = room.categories[ci]?.items[ii];
+      if (!item) return;
+      const newHTML = buildItem(room, item, ci, ii);
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = newHTML;
+      const newRow = wrapper.firstElementChild;
+      if (flash) {
+        newRow.style.animation = 'none';
+        newRow.classList.add('flash');
+      }
+      existingRow.parentNode.replaceChild(newRow, existingRow);
+      const badge = document.getElementById(`badge-${roomId}_${ci}`);
+      if (badge) {
+        const {total,done} = getCatStats(room,ci);
+        badge.textContent = `${done}/${total}`;
+      }
+    }
+
+    function updateAllProgress() {
+      const {total,done} = getTotalStats();
+      const pct  = total>0?Math.round((done/total)*100):0;
+      const fill = pct===100?'#22c55e':'#1D9E75';
+      const ce=document.getElementById('progress-count');
+      const fe=document.getElementById('progress-fill');
+      if(ce) ce.textContent=`${done} / ${total} položiek (${pct}%)`;
+      if(fe){fe.style.width=`${pct}%`;fe.style.background=fill;}
+      ROOMS.forEach(room=>{
+        const s=getRoomStats(room);
+        const rp=s.total>0?Math.round((s.done/s.total)*100):0;
+        const pt=document.getElementById(`rpt-${room.id}`);
+        const pf=document.getElementById(`rpf-${room.id}`);
+        if(pt) pt.textContent=`${s.done} / ${s.total} položiek`;
+        if(pf) pf.style.width=`${rp}%`;
+      });
+      document.querySelectorAll('.tab[data-room]').forEach(tab=>{
+        const rid=tab.dataset.room; if(rid==='all') return;
+        const room=ROOMS.find(r=>r.id===rid); if(!room) return;
+        const s=getRoomStats(room);
+        const b=tab.querySelector('.tab-badge');
+        if(b) b.textContent=`${s.done}/${s.total}`;
+      });
+    }
+
+    function refreshContent() {
+      const c=document.getElementById('content');
+      if(c) c.innerHTML=buildContent();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // RENDER
+    // ═══════════════════════════════════════════════════════════════
+
+    function render() {
+      document.documentElement.setAttribute('data-theme', state.darkMode?'dark':'light');
+      document.getElementById('app').innerHTML = buildApp();
+      bindAppEvents();
+      const activeTab = document.querySelector('.tab.tab-active');
+      if (activeTab) activeTab.scrollIntoView({inline:'center',block:'nearest'});
+    }
+
+    function renderLogin() {
+      document.documentElement.setAttribute('data-theme', state.darkMode?'dark':'light');
+      document.getElementById('app').innerHTML = `
+        <div class="login-screen">
+          <div class="login-card">
+            <div class="login-logo">🏠</div>
+            <h1 class="login-title">Nový domov</h1>
+            <p class="login-subtitle">Nákupný zoznam pre nový byt</p>
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-input" id="login-email" placeholder="tvoj@email.sk" autocomplete="email">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Heslo</label>
+              <input type="password" class="form-input" id="login-password" placeholder="••••••••" autocomplete="current-password">
+            </div>
+            <button class="btn-login" id="btn-login-submit">Prihlásiť sa</button>
+            <div class="login-error" id="login-error"></div>
+          </div>
+        </div>`;
+      bindLoginEvents();
+    }
+
+    function renderLoading() {
+      document.getElementById('app').innerHTML = `
+        <div class="loading-screen">
+          <div class="spinner"></div>
+          <div class="loading-text">Načítava sa…</div>
+        </div>`;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // MODAL
+    // ═══════════════════════════════════════════════════════════════
+
+    let pendingKey      = null;
+    let selectedStoreId = null;
+
+    function openModal(key) {
+      const { roomId, ci, ii } = parseItemKey(key);
+      const room = ROOMS.find(r=>r.id===roomId);
+      if (!room) return;
+      const item = room.categories[ci]?.items[ii];
+      if (!item) return;
+      pendingKey      = key;
+      selectedStoreId = null;
+
+      const tag = document.getElementById('modal-room-tag');
+      const nameEl = document.getElementById('modal-item-name');
+      const storesEl = document.getElementById('modal-stores');
+      const customEl = document.getElementById('modal-custom');
+      const confirmBtn = document.getElementById('modal-confirm');
+
+      if (tag) {
+        tag.innerHTML = `<i class="ti ${room.icon}"></i> ${escHtml(room.label)}`;
+        tag.style.cssText = `background:${room.color}18;color:${room.color};border:1px solid ${room.color}40`;
+      }
+      if (nameEl) nameEl.textContent = item.n;
+
+      const stores = [...getStoresForItem(item), STORES_MODAL_EXTRA];
+      if (storesEl) {
+        storesEl.innerHTML = stores.map(s =>
+          `<button class="modal-store-btn" data-sid="${s.id}" style="--sc:${s.color}"
+                   onclick="selectStore('${s.id}','${s.color}')">${s.label}</button>`
+        ).join('');
+      }
+      if (customEl) customEl.style.display = 'none';
+      if (confirmBtn) confirmBtn.disabled = true;
+
+      document.getElementById('modal-overlay').classList.add('open');
+    }
+
+    window.closeModal = function() {
+      document.getElementById('modal-overlay').classList.remove('open');
+      pendingKey = null; selectedStoreId = null;
+    };
+
+    window.selectStore = function(storeId, color) {
+      selectedStoreId = storeId;
+      document.querySelectorAll('.modal-store-btn').forEach(btn => {
+        const isSelected = btn.dataset.sid === storeId;
+        btn.classList.toggle('selected', isSelected);
+      });
+      const customEl = document.getElementById('modal-custom');
+      if (customEl) customEl.style.display = storeId === 'ine' ? 'block' : 'none';
+      if (storeId === 'ine') {
+        const ci = document.getElementById('modal-custom-input');
+        if (ci) { ci.focus(); }
+      }
+      const confirmBtn = document.getElementById('modal-confirm');
+      if (confirmBtn) confirmBtn.disabled = false;
+    };
+
+    window.confirmCheck = async function() {
+      if (!pendingKey || !selectedStoreId) return;
+      let store = selectedStoreId;
+      if (store === 'ine') {
+        const ci = document.getElementById('modal-custom-input');
+        store = ci?.value.trim() || 'Iné';
+      } else {
+        store = STORES.find(s=>s.id===selectedStoreId)?.label || selectedStoreId;
+      }
+      const key = pendingKey;
+      closeModal();
+      await saveItem(key, store);
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    // STORE MOBILE DROPDOWN
+    // ═══════════════════════════════════════════════════════════════
+
+    window.openStoreMenu = function(e, btn) {
+      e.stopPropagation();
+      const d = btn.nextElementSibling;
+      const isOpen = d.classList.contains('open');
+      document.querySelectorAll('.store-dropdown.open').forEach(x=>x.classList.remove('open'));
+      if (!isOpen) d.classList.add('open');
+    };
+
+    document.addEventListener('click', () => {
+      document.querySelectorAll('.store-dropdown.open').forEach(d=>d.classList.remove('open'));
+    });
+
+    // ═══════════════════════════════════════════════════════════════
+    // EVENTS
+    // ═══════════════════════════════════════════════════════════════
+
+    function bindLoginEvents() {
+      const emailInput = document.getElementById('login-email');
+      const passInput  = document.getElementById('login-password');
+      const btn        = document.getElementById('btn-login-submit');
+      const errEl      = document.getElementById('login-error');
+
+      async function doLogin() {
+        const email = emailInput?.value.trim();
+        const pass  = passInput?.value;
+        if (!email || !pass) return;
+        if (btn) btn.disabled = true;
+        if (btn) btn.textContent = 'Prihlasovanie…';
+        const { user, error } = await sbLogin(email, pass);
+        if (error || !user) {
+          if (errEl) { errEl.textContent = 'Nesprávny email alebo heslo.'; errEl.style.display = 'block'; }
+          if (btn) { btn.disabled = false; btn.textContent = 'Prihlásiť sa'; }
+          return;
+        }
+        currentUser = user;
+        renderLoading();
+        await loadItems();
+        setupRealtime();
+        render();
+      }
+
+      btn?.addEventListener('click', doLogin);
+      passInput?.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+      emailInput?.focus();
+    }
+
+    let searchTimer = null;
+
+    function bindAppEvents() {
+      document.getElementById('btn-dark')?.addEventListener('click', () => {
+        state.darkMode = !state.darkMode;
+        localStorage.setItem(THEME_KEY, state.darkMode?'dark':'light');
+        render();
+      });
+      document.getElementById('btn-logout')?.addEventListener('click', sbLogout);
+      document.getElementById('btn-export')?.addEventListener('click', doExport);
+
+      document.getElementById('tab-bar')?.addEventListener('click', e => {
+        const tab = e.target.closest('[data-room]');
+        if (tab) { state.activeRoom=tab.dataset.room; state.search=''; state.filter='all'; render(); }
+      });
+
+      const si = document.getElementById('search-input');
+      if (si) {
+        si.addEventListener('input', e => {
+          clearTimeout(searchTimer);
+          searchTimer = setTimeout(() => {
+            state.search = e.target.value;
+            refreshContent();
+            toggleSearchClear();
+          }, 120);
+        });
+      }
+
+      document.getElementById('search-clear')?.addEventListener('click', () => {
+        state.search='';
+        const inp=document.getElementById('search-input');
+        if(inp) inp.value='';
+        toggleSearchClear(); refreshContent();
+      });
+
+      document.getElementById('filter-pills')?.addEventListener('click', e => {
+        const pill=e.target.closest('[data-filter]'); if(!pill) return;
+        state.filter=pill.dataset.filter;
+        document.querySelectorAll('.pill').forEach(p=>p.classList.toggle('pill-active',p.dataset.filter===state.filter));
+        refreshContent();
+      });
+
+      // Delegated content events
+      document.getElementById('content')?.addEventListener('click', async e => {
+        // Checkbox
+        const cb = e.target.closest('.checkbox[data-key]');
+        if (cb) {
+          const key = cb.dataset.key;
+          if (state.items[key]) {
+            await deleteItem(key);
+          } else {
+            openModal(key);
+          }
+          return;
+        }
+        // Category collapse
+        const colBtn = e.target.closest('[data-collapse]');
+        if (colBtn) {
+          const k = colBtn.dataset.collapse;
+          state.collapsed[k] = !state.collapsed[k];
+          localStorage.setItem(COLLAPSE_KEY, JSON.stringify(state.collapsed));
+          colBtn.closest('.category').classList.toggle('collapsed', !!state.collapsed[k]);
+          return;
+        }
+        // Room actions
+        const actionBtn = e.target.closest('[data-action]');
+        if (actionBtn) {
+          const { action, room: roomId } = actionBtn.dataset;
+          const room = ROOMS.find(r=>r.id===roomId); if(!room) return;
+          if (action === 'check-all') {
+            // Can't easily batch with store info – open individual modals would be bad UX.
+            // Instead, mark all as "Iné" with current user. User can update individually.
+            const promises = [];
+            room.categories.forEach((cat,ci) => cat.items.forEach((_,ii) => {
+              const key = itemKey(roomId,ci,ii);
+              if (!state.items[key]) promises.push(saveItem(key,'Iné'));
+            }));
+            await Promise.all(promises);
+            render();
+          } else if (action === 'reset') {
+            const promises = [];
+            room.categories.forEach((cat,ci) => cat.items.forEach((_,ii) => {
+              const key = itemKey(roomId,ci,ii);
+              if (state.items[key]) promises.push(deleteItem(key));
+            }));
+            await Promise.all(promises);
+            render();
+          }
+          return;
+        }
+      });
+    }
+
+    function toggleSearchClear() {
+      const wrapper = document.querySelector('.search-wrapper'); if(!wrapper) return;
+      let clear = document.getElementById('search-clear');
+      if (state.search && !clear) {
+        clear = document.createElement('button');
+        clear.className='search-clear'; clear.id='search-clear';
+        clear.innerHTML='<i class="ti ti-x"></i>';
+        clear.addEventListener('click', () => {
+          state.search='';
+          const inp=document.getElementById('search-input');
+          if(inp) inp.value='';
+          toggleSearchClear(); refreshContent();
+        });
+        wrapper.appendChild(clear);
+      } else if (!state.search && clear) {
+        clear.remove();
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // EXPORT
+    // ═══════════════════════════════════════════════════════════════
+
+    function doExport() {
+      let text = 'NOVÝ DOMOV – Nákupný zoznam\n';
+      text += 'Nenakúpené položky\n';
+      text += `Vygenerované: ${new Date().toLocaleDateString('sk-SK')}\n`;
+      text += '═'.repeat(50) + '\n\n';
+      let anyItem = false;
+      ROOMS.forEach(room => {
+        const lines = [];
+        room.categories.forEach((cat,ci) => {
+          const catLines = [];
+          cat.items.forEach((item,ii) => {
+            const meta = state.items[itemKey(room.id,ci,ii)];
+            if (!meta) {
+              const q = encodeURIComponent(item.n);
+              const stores = getStoresForItem(item).map(s=>`${s.label}: ${s.url(q)}`).join(' | ');
+              catLines.push(`    • ${item.n}${item.p==='must'?'  [nutné]':''}  →  ${stores}`);
+            }
+          });
+          if (catLines.length) { lines.push(`  ${cat.label}:`); lines.push(...catLines); }
+        });
+        if (lines.length) { anyItem=true; text+=`${room.label}\n${'─'.repeat(30)}\n${lines.join('\n')}\n\n`; }
+      });
+      if (!anyItem) text += 'Všetky položky sú nakúpené! 🎉\n';
+      const blob=new Blob([text],{type:'text/plain;charset=utf-8'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url; a.download='nakupny-zoznam.txt';
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a); URL.revokeObjectURL(url);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════════════════════════════
+
+    async function init() {
+      // Apply theme early
+      const savedTheme = localStorage.getItem(THEME_KEY);
+      state.darkMode = savedTheme ? savedTheme==='dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.setAttribute('data-theme', state.darkMode?'dark':'light');
+
+      // Restore collapse state
+      try { const c=localStorage.getItem(COLLAPSE_KEY); if(c) state.collapsed=JSON.parse(c); } catch(e){}
+
+      // Check config
+      if (CONFIG.supabaseUrl === 'YOUR_SUPABASE_URL') {
+        document.getElementById('app').innerHTML = `
+          <div class="loading-screen">
+            <div style="text-align:center;padding:40px;max-width:480px;">
+              <div style="font-size:36px;margin-bottom:16px">⚙️</div>
+              <h2 style="font-family:Outfit,sans-serif;margin-bottom:8px">Konfigurácia chýba</h2>
+              <p style="color:var(--text-muted);font-size:14px;line-height:1.6">
+                Otvor <code>index.html</code>, nájdi <code>CONFIG</code> a doplň<br>
+                <strong>supabaseUrl</strong> a <strong>supabaseAnonKey</strong><br>
+                zo svojho Supabase projektu.
+              </p>
+            </div>
+          </div>`;
+        return;
+      }
+
+      const { createClient } = window.supabase;
+      db = createClient(CONFIG.supabaseUrl, CONFIG.supabaseAnonKey);
+
+      renderLoading();
+
+      const { data: { session } } = await db.auth.getSession();
+      if (!session) { renderLogin(); return; }
+
+      currentUser = session.user;
+      await loadItems();
+      setupRealtime();
+      render();
+
+      // Handle auth state changes (token refresh, logout from other tab)
+      db.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_OUT') { currentUser=null; renderLogin(); }
+        if (event === 'SIGNED_IN' && session) { currentUser=session.user; }
+      });
+    }
+
+    init();
+  </script>
+</body>
+</html>
