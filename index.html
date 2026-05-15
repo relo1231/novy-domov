@@ -411,6 +411,58 @@
     .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
     .empty-state .ti { font-size: 40px; margin-bottom: 12px; display: block; opacity: .4; }
 
+    /* ── PHASES / TIMELINE ── */
+    .tab-sep { width: 1px; background: var(--border); margin: 6px 4px; flex-shrink: 0; align-self: stretch; }
+    .phases-view { display: flex; flex-direction: column; gap: 0; }
+
+    .phase-section { margin-bottom: 12px; border-radius: var(--radius-card); overflow: hidden; box-shadow: var(--shadow-sm); }
+    .phase-header {
+      display: flex; align-items: center; gap: 14px; padding: 14px 18px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-card) var(--radius-card) 0 0;
+      cursor: pointer; transition: background .15s; user-select: none;
+    }
+    .phase-section.phase-no-tasks .phase-header { border-radius: var(--radius-card); }
+    .phase-header:hover { background: var(--bg-subtle); }
+
+    .phase-num {
+      width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 700;
+      background: var(--bg-subtle); color: var(--text-muted); border: 2px solid var(--border); transition: all .25s;
+    }
+    .phase-section.phase-done .phase-num { background: #1D9E75; color: #fff; border-color: #1D9E75; }
+    .phase-section.phase-partial .phase-num { background: #E8A020; color: #fff; border-color: #E8A020; }
+
+    .phase-title-wrap { flex: 1; min-width: 0; }
+    .phase-title { font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 600; }
+    .phase-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+    .phase-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .phase-prog-track { width: 72px; height: 5px; background: var(--border); border-radius: var(--radius-pill); overflow: hidden; }
+    .phase-prog-fill { height: 100%; border-radius: var(--radius-pill); background: #1D9E75; transition: width .4s; }
+    .phase-section.phase-partial .phase-prog-fill { background: #E8A020; }
+    .phase-spent { font-size: 12px; font-weight: 600; color: #1D9E75; display: flex; align-items: center; gap: 3px; }
+    .phase-chevron { font-size: 16px; color: var(--text-dim); transition: transform .2s; }
+    .phase-section.phase-collapsed .phase-chevron { transform: rotate(-90deg); }
+
+    .phase-tasks { border: 1px solid var(--border); border-top: none; background: var(--bg-card); overflow: hidden; border-radius: 0 0 var(--radius-card) var(--radius-card); }
+    .phase-section.phase-collapsed .phase-tasks { display: none; }
+
+    .phase-task-row {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 9px 16px 9px 18px; border-bottom: 1px solid var(--border-subtle); transition: background .1s;
+    }
+    .phase-task-row:last-child { border-bottom: none; }
+    .phase-task-row:hover { background: var(--bg-subtle); }
+    .phase-task-row.task-done .task-name { text-decoration: line-through; color: var(--text-dim); }
+    .phase-task-row.task-done { opacity: .65; }
+
+    .task-name-wrap { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .task-name { font-size: 14px; color: var(--text); }
+    .task-meta { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; font-size: 11px; color: var(--text-dim); line-height: 1.4; }
+    .task-meta .ti { font-size: 11px; }
+
     @media (max-width: 660px) {
       /* store badges → cart dropdown */
       .store-badges { display: none; }
@@ -467,6 +519,11 @@
       .modal-stores { padding: 12px 18px; }
       .modal-custom { padding: 0 18px 8px; }
       .modal-footer { padding: 10px 18px 36px; }
+
+      /* phases on mobile */
+      .phase-header { padding: 12px 14px; gap: 10px; }
+      .phase-prog-track { width: 50px; }
+      .phase-task-row { padding: 8px 12px 8px 14px; }
     }
 
     /* icon-only tabs on very small phones */
@@ -491,7 +548,7 @@
       <div class="modal-header">
         <div class="modal-room-tag" id="modal-room-tag"></div>
         <h3 class="modal-item-name" id="modal-item-name"></h3>
-        <p class="modal-subtitle">Odkiaľ si to kúpil/a?</p>
+        <p class="modal-subtitle" id="modal-subtitle">Odkiaľ si to kúpil/a?</p>
       </div>
       <div class="modal-stores" id="modal-stores"></div>
       <div class="modal-custom" id="modal-custom" style="display:none">
@@ -508,7 +565,8 @@
       <div class="modal-footer">
         <button class="btn-modal-cancel" onclick="closeModal()">Zrušiť</button>
         <button class="btn-modal-confirm" id="modal-confirm" onclick="confirmCheck()" disabled>
-          <i class="ti ti-shopping-cart"></i> Potvrdiť nákup
+          <i class="ti ti-shopping-cart" id="modal-confirm-icon"></i>
+          <span id="modal-confirm-label">Potvrdiť nákup</span>
         </button>
       </div>
     </div>
@@ -739,6 +797,105 @@
 
     const STORES_MODAL_EXTRA = { id: 'ine', label: 'Iné', color: '#6b7280' };
 
+    const PHASES = [
+      { id: 'kupa', label: 'Kúpa bytu', icon: 'ti-file-certificate', color: '#7F77DD', tasks: [
+        'Prehliadka bytov a výber',
+        'Rezervačná zmluva a rezervačný poplatok',
+        'Schválenie hypotéky / financovanie',
+        'Kúpno-predajná zmluva – notár',
+        'Zápis do katastra nehnuteľností',
+        'Prevzatie kľúčov a protokol o odovzdaní',
+      ]},
+      { id: 'admin', label: 'Administratíva', icon: 'ti-file-text', color: '#378ADD', tasks: [
+        'Poistenie nehnuteľnosti',
+        'Prepis elektromeru (elektrická energia)',
+        'Prepis plynu (ak je plyn)',
+        'Prepis vody a stočného',
+        'Nahlásenie trvalého pobytu',
+        'Prepis internetu / káblovky',
+      ]},
+      { id: 'projekt', label: 'Projekt & príprava', icon: 'ti-ruler-2', color: '#E8A020', tasks: [
+        'Zameranie bytu / pôvodné výkresy',
+        'Zámer rekonštrukcie – čo búrať, čo stavať',
+        'Návrh od architekta / interiérového dizajnéra',
+        'Stavebné povolenie (ak potrebné)',
+        'Výber dodávateľov – murári, elektrikár, inštalatér',
+        'Záväzný harmonogram prác a rozpočet',
+      ]},
+      { id: 'buranie', label: 'Búracie práce', icon: 'ti-hammer', color: '#D85A30', tasks: [
+        'Odpojenie elektriny, vody a plynu v byte',
+        'Búranie priečok a nenosných stien',
+        'Vybúranie starých podlahových vrstiev',
+        'Likvidácia stavebného odpadu',
+        'Kontrola stavu po búraní (trhliny, vlhkosť)',
+      ]},
+      { id: 'instalacje', label: 'Inštalácie', icon: 'ti-tool', color: '#1D9E75', tasks: [
+        'Nová elektroinštalácia (rozvody, krabice)',
+        'Vodoinštalácia – rozvody teplej a studenej vody',
+        'Kanalizácia a odpady',
+        'Rozvody kúrenia / podlahové kúrenie',
+        'Prívod pre kuchynské spotrebiče (digestor, rúra, umývačka)',
+        'Revízia elektrickej inštalácie',
+      ]},
+      { id: 'omietky', label: 'Omietky & povrchy', icon: 'ti-texture', color: '#888780', tasks: [
+        'Murárske práce – zaliatie, domurovanie',
+        'Sadrokartónové priečky a podhľady',
+        'Omietky – štukové alebo strojové',
+        'Penetrácia a základný náter stien',
+      ]},
+      { id: 'podlahy', label: 'Podlahy', icon: 'ti-grid-dots', color: '#639922', tasks: [
+        'Anhydritová alebo cementová roznášacia vrstva',
+        'Dlažba – kúpeľňa a WC',
+        'Dlažba – predsieň a kuchyňa (ak plánovaná)',
+        'Laminát alebo parkety – obývačka, spálňa, izby',
+        'Soklíky a prechodové lišty',
+      ]},
+      { id: 'malbanie', label: 'Maľovanie', icon: 'ti-paint', color: '#E8A020', tasks: [
+        'Tmelenie a brúsenie stien',
+        'Základný (penetračný) náter',
+        'Finálne maľovanie – 1. vrstva',
+        'Finálne maľovanie – 2. vrstva',
+        'Maľovanie stropov',
+      ]},
+      { id: 'dvere', label: 'Dvere & okná', icon: 'ti-door', color: '#888780', tasks: [
+        'Montáž vnútorných dverí a zárubní',
+        'Výmena okien (ak plánovaná)',
+        'Interiérové žalúzie alebo rolety',
+        'Vonkajšie rolety alebo markíza (balkón)',
+      ]},
+      { id: 'kuchmont', label: 'Montáž kuchyne', icon: 'ti-tools-kitchen-2', color: '#E8A020', tasks: [
+        'Dodávka kuchynskej linky',
+        'Montáž skriniek – spodné a horné',
+        'Zabudované spotrebiče (rúra, umývačka, chladnička)',
+        'Pracovná doska a drez',
+        'Digestor a napojenie na odvetranie',
+        'Obklady nad linkou (zástena)',
+      ]},
+      { id: 'kupmont', label: 'Kúpeľňa & WC', icon: 'ti-bath', color: '#378ADD', tasks: [
+        'Obklady stien – kúpeľňa',
+        'Obklady stien – WC',
+        'Sprchový kút alebo vaňa – montáž',
+        'WC misa, splachováč a bidet',
+        'Umývadlo a batéria',
+        'Kúpeľňový nábytok a zrkadlo',
+        'Vykurovacie teleso (rebríkový radiátor)',
+      ]},
+      { id: 'svetlo', label: 'Osvetlenie & elektro', icon: 'ti-bulb', color: '#E8A020', tasks: [
+        'Inštalácia stropných svietidiel a lustrov',
+        'Bodové svetlá a LED pásy',
+        'Vypínače, zásuvky – finálne kryty',
+        'Smart home / ovládanie osvetlenia (ak plánované)',
+        'Vonkajšie zásuvky a svietidlá (balkón)',
+      ]},
+      { id: 'stahov', label: 'Upratovanie & sťahovanie', icon: 'ti-truck', color: '#1D9E75', tasks: [
+        'Generálne upratovanie po rekonštrukcii',
+        'Sťahovanie nábytku a zariadenia',
+        'Rozbalenie a usporiadanie',
+        'Zavesenie obrazov, zrkadiel a dekorácií',
+        'Záverečná prehliadka – punch list',
+      ]},
+    ];
+
     function getStoresForItem(item) {
       return STORES.filter(s => !(s.id === 'ikea' && item.ikea === false));
     }
@@ -835,13 +992,36 @@
     function itemKey(roomId, ci, ii) { return `${roomId}_${ci}_${ii}`; }
 
     function parseItemKey(key) {
+      if (key.startsWith('ph_')) {
+        const withoutPrefix = key.slice(3);
+        const li = withoutPrefix.lastIndexOf('_');
+        return { isPhase: true, phaseId: withoutPrefix.slice(0, li), taskIdx: parseInt(withoutPrefix.slice(li + 1)) };
+      }
       const li = key.lastIndexOf('_');
       const ii = parseInt(key.slice(li + 1));
       const rest = key.slice(0, li);
       const li2 = rest.lastIndexOf('_');
       const ci = parseInt(rest.slice(li2 + 1));
       const roomId = rest.slice(0, li2);
-      return { roomId, ci, ii };
+      return { isPhase: false, roomId, ci, ii };
+    }
+
+    function phaseTaskKey(phaseId, taskIdx) { return `ph_${phaseId}_${taskIdx}`; }
+
+    function getPhaseStats(phase) {
+      let total = phase.tasks.length, done = 0;
+      phase.tasks.forEach((_, i) => { if (state.items[phaseTaskKey(phase.id, i)]) done++; });
+      return { total, done };
+    }
+
+    function getPhaseTotal(phase) {
+      let sum = 0;
+      phase.tasks.forEach((_, i) => { const m = state.items[phaseTaskKey(phase.id, i)]; if (m?.price) sum += parseFloat(m.price); });
+      return sum;
+    }
+
+    function getPhasesStats() {
+      return PHASES.reduce((a, p) => { const s = getPhaseStats(p); a.total += s.total; a.done += s.done; return a; }, { total: 0, done: 0 });
     }
 
     function escHtml(s) {
@@ -1022,9 +1202,77 @@
     }
 
     function buildContent() {
+      if (state.activeRoom === 'postup') return buildPhasesView();
       const rooms = state.activeRoom==='all' ? ROOMS : ROOMS.filter(r=>r.id===state.activeRoom);
       const html = rooms.map(r=>buildRoomSection(r)).join('');
       return html.trim() ? html : `<div class="empty-state"><i class="ti ti-search"></i><p>Žiadne položky nezodpovedajú hľadaniu.</p></div>`;
+    }
+
+    function buildPhaseTask(phase, task, idx) {
+      const key = phaseTaskKey(phase.id, idx);
+      const meta = state.items[key];
+      const done = !!meta;
+      const chkSty = done ? `style="--check-color:${phase.color}"` : '';
+      let metaHTML = '';
+      if (done && meta) {
+        const priceChip = meta.price
+          ? `<span class="meta-sep">·</span><span class="item-price"><i class="ti ti-currency-euro"></i> ${formatPrice(meta.price)}</span>`
+          : '';
+        metaHTML = `<div class="task-meta">
+          <span><i class="ti ti-user"></i> ${escHtml(meta.checked_by)}</span>
+          <span class="meta-sep">·</span>
+          <span><i class="ti ti-calendar"></i> ${fmtDate(meta.checked_at)}</span>
+          ${meta.store && meta.store !== 'Hotové' ? `<span class="meta-sep">·</span><span><i class="ti ti-building-store"></i> ${escHtml(meta.store)}</span>` : ''}
+          ${priceChip}
+        </div>`;
+      }
+      return `<div class="phase-task-row${done?' task-done':''}" data-key="${key}">
+        <button class="checkbox${done?' checkbox-checked':''}" data-key="${key}" ${chkSty}>
+          <svg class="check-icon" viewBox="0 0 12 12" fill="none">
+            <polyline points="1.5,6 4.5,9 10.5,3" stroke="white" stroke-width="1.8"
+                      stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="task-name-wrap">
+          <span class="task-name">${escHtml(task)}</span>
+          ${metaHTML}
+        </div>
+      </div>`;
+    }
+
+    function buildPhaseSection(phase, num) {
+      const { total, done } = getPhaseStats(phase);
+      const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+      const allDone = done === total && total > 0;
+      const partial = done > 0 && !allDone;
+      const colKey = `ph_col_${phase.id}`;
+      const collapsed = !!state.collapsed[colKey];
+      const phaseTotal = getPhaseTotal(phase);
+
+      const statusClass = allDone ? 'phase-done' : partial ? 'phase-partial' : '';
+      const tasksHTML = phase.tasks.map((t, i) => buildPhaseTask(phase, t, i)).join('');
+
+      return `<div class="phase-section ${statusClass}${collapsed?' phase-collapsed':''}" data-phase="${phase.id}">
+        <div class="phase-header" data-phase-collapse="${colKey}">
+          <div class="phase-num">${allDone ? '<i class="ti ti-check"></i>' : num}</div>
+          <div class="phase-title-wrap">
+            <div class="phase-title">${escHtml(phase.label)}</div>
+            <div class="phase-sub" id="phs-${phase.id}">${done} / ${total} úloh${allDone ? ' · dokončené' : ''}</div>
+          </div>
+          <div class="phase-right">
+            ${phaseTotal > 0 ? `<div class="phase-spent" id="phsp-${phase.id}"><i class="ti ti-currency-euro"></i> ${formatPrice(phaseTotal)}</div>` : `<div class="phase-spent" id="phsp-${phase.id}" style="display:none"></div>`}
+            <div class="phase-prog-track">
+              <div class="phase-prog-fill" id="phpf-${phase.id}" style="width:${pct}%"></div>
+            </div>
+            <i class="ti ti-chevron-down phase-chevron"></i>
+          </div>
+        </div>
+        <div class="phase-tasks">${tasksHTML}</div>
+      </div>`;
+    }
+
+    function buildPhasesView() {
+      return `<div class="phases-view">${PHASES.map((p, i) => buildPhaseSection(p, i + 1)).join('')}</div>`;
     }
 
     function buildHeader() {
@@ -1054,6 +1302,20 @@
     }
 
     function buildProgressBar() {
+      if (state.activeRoom === 'postup') {
+        const ps = getPhasesStats();
+        const pct = ps.total > 0 ? Math.round((ps.done / ps.total) * 100) : 0;
+        const fill = pct === 100 ? '#22c55e' : '#7F77DD';
+        return `<div class="progress-sticky">
+          <div class="progress-info">
+            <span class="progress-label">Postup rekonštrukcie</span>
+            <span class="progress-count" id="progress-count">${ps.done} / ${ps.total} (${pct}%)</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="progress-fill" style="width:${pct}%;background:${fill}"></div>
+          </div>
+        </div>`;
+      }
       const {total,done} = getTotalStats();
       const pct = total>0?Math.round((done/total)*100):0;
       const fill = pct===100?'#22c55e':'#1D9E75';
@@ -1075,11 +1337,11 @@
     }
 
     function buildTabBar() {
-      const tabs = [
+      const shopTabs = [
         {id:'all',label:'Všetky',icon:'ti-layout-grid',color:'#1D9E75',stats:null},
         ...ROOMS.map(r=>({...r,stats:getRoomStats(r)}))
       ];
-      const items = tabs.map(t=>{
+      const shopItems = shopTabs.map(t=>{
         const active = state.activeRoom===t.id;
         const badge  = t.stats?`<span class="tab-badge">${t.stats.done}/${t.stats.total}</span>`:'';
         return `<button class="tab${active?' tab-active':''}" data-room="${t.id}"
@@ -1087,7 +1349,20 @@
           <i class="ti ${t.icon}"></i><span class="tab-label">${t.label}</span>${badge}
         </button>`;
       }).join('');
-      return `<div class="tab-bar-wrapper"><div class="tab-bar" id="tab-bar">${items}</div></div>`;
+
+      const postupActive = state.activeRoom === 'postup';
+      const ps = getPhasesStats();
+      const postupTab = `<button class="tab${postupActive?' tab-active':''}" data-room="postup"
+                  ${postupActive?'style="--tab-color:#7F77DD"':''}>
+          <i class="ti ti-list-check"></i><span class="tab-label">Postup</span>
+          <span class="tab-badge">${ps.done}/${ps.total}</span>
+        </button>`;
+
+      return `<div class="tab-bar-wrapper"><div class="tab-bar" id="tab-bar">
+        ${shopItems}
+        <div class="tab-sep"></div>
+        ${postupTab}
+      </div></div>`;
     }
 
     function buildFilterBar() {
@@ -1109,7 +1384,8 @@
     }
 
     function buildApp() {
-      return buildHeader()+buildProgressBar()+buildTabBar()+buildFilterBar()
+      const filterBar = state.activeRoom === 'postup' ? '' : buildFilterBar();
+      return buildHeader()+buildProgressBar()+buildTabBar()+filterBar
            + `<main class="content" id="content">${buildContent()}</main>`;
     }
 
@@ -1118,9 +1394,11 @@
     // ═══════════════════════════════════════════════════════════════
 
     function updateItemDOM(key, flash = false) {
+      const parsed = parseItemKey(key);
+      if (parsed.isPhase) { updatePhaseTaskDOM(key, parsed, flash); return; }
+      const { roomId, ci, ii } = parsed;
       const existingRow = document.querySelector(`.item-row[data-key="${key}"]`);
       if (!existingRow) return;
-      const { roomId, ci, ii } = parseItemKey(key);
       const room = ROOMS.find(r=>r.id===roomId);
       if (!room) return;
       const item = room.categories[ci]?.items[ii];
@@ -1129,15 +1407,45 @@
       const wrapper = document.createElement('div');
       wrapper.innerHTML = newHTML;
       const newRow = wrapper.firstElementChild;
-      if (flash) {
-        newRow.style.animation = 'none';
-        newRow.classList.add('flash');
-      }
+      if (flash) { newRow.style.animation = 'none'; newRow.classList.add('flash'); }
       existingRow.parentNode.replaceChild(newRow, existingRow);
       const badge = document.getElementById(`badge-${roomId}_${ci}`);
-      if (badge) {
-        const {total,done} = getCatStats(room,ci);
-        badge.textContent = `${done}/${total}`;
+      if (badge) { const {total,done} = getCatStats(room,ci); badge.textContent = `${done}/${total}`; }
+    }
+
+    function updatePhaseTaskDOM(key, parsed, flash) {
+      const existingRow = document.querySelector(`.phase-task-row[data-key="${key}"]`);
+      if (!existingRow) return;
+      const phase = PHASES.find(p => p.id === parsed.phaseId);
+      if (!phase) return;
+      const task = phase.tasks[parsed.taskIdx];
+      if (task === undefined) return;
+      const newHTML = buildPhaseTask(phase, task, parsed.taskIdx);
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = newHTML;
+      const newRow = wrapper.firstElementChild;
+      existingRow.parentNode.replaceChild(newRow, existingRow);
+      // Update phase header stats
+      const { total, done } = getPhaseStats(phase);
+      const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+      const allDone = done === total && total > 0;
+      const partial = done > 0 && !allDone;
+      const phSec = document.querySelector(`.phase-section[data-phase="${phase.id}"]`);
+      if (phSec) {
+        phSec.classList.toggle('phase-done', allDone);
+        phSec.classList.toggle('phase-partial', partial);
+        const numEl = phSec.querySelector('.phase-num');
+        if (numEl) numEl.innerHTML = allDone ? '<i class="ti ti-check"></i>' : String(PHASES.indexOf(phase) + 1);
+      }
+      const subEl = document.getElementById(`phs-${phase.id}`);
+      if (subEl) subEl.textContent = `${done} / ${total} úloh${allDone ? ' · dokončené' : ''}`;
+      const pfEl = document.getElementById(`phpf-${phase.id}`);
+      if (pfEl) pfEl.style.width = `${pct}%`;
+      const phTotal = getPhaseTotal(phase);
+      const phSpEl = document.getElementById(`phsp-${phase.id}`);
+      if (phSpEl) {
+        phSpEl.style.display = phTotal > 0 ? '' : 'none';
+        phSpEl.innerHTML = `<i class="ti ti-currency-euro"></i> ${formatPrice(phTotal)}`;
       }
     }
 
@@ -1171,11 +1479,27 @@
       });
       document.querySelectorAll('.tab[data-room]').forEach(tab=>{
         const rid=tab.dataset.room; if(rid==='all') return;
+        if (rid === 'postup') {
+          const ps = getPhasesStats();
+          const b = tab.querySelector('.tab-badge');
+          if (b) b.textContent = `${ps.done}/${ps.total}`;
+          return;
+        }
         const room=ROOMS.find(r=>r.id===rid); if(!room) return;
         const s=getRoomStats(room);
         const b=tab.querySelector('.tab-badge');
         if(b) b.textContent=`${s.done}/${s.total}`;
       });
+      // Update progress bar if on postup tab
+      if (state.activeRoom === 'postup') {
+        const ps = getPhasesStats();
+        const pct = ps.total > 0 ? Math.round((ps.done / ps.total) * 100) : 0;
+        const fill = pct === 100 ? '#22c55e' : '#7F77DD';
+        const ce = document.getElementById('progress-count');
+        const fe = document.getElementById('progress-fill');
+        if (ce) ce.textContent = `${ps.done} / ${ps.total} (${pct}%)`;
+        if (fe) { fe.style.width = `${pct}%`; fe.style.background = fill; }
+      }
     }
 
     function refreshContent() {
@@ -1232,39 +1556,69 @@
 
     let pendingKey      = null;
     let selectedStoreId = null;
+    let modalMode       = 'purchase'; // 'purchase' | 'task'
 
     function openModal(key) {
-      const { roomId, ci, ii } = parseItemKey(key);
-      const room = ROOMS.find(r=>r.id===roomId);
-      if (!room) return;
-      const item = room.categories[ci]?.items[ii];
-      if (!item) return;
+      const parsed = parseItemKey(key);
       pendingKey      = key;
       selectedStoreId = null;
 
-      const tag = document.getElementById('modal-room-tag');
-      const nameEl = document.getElementById('modal-item-name');
-      const storesEl = document.getElementById('modal-stores');
-      const customEl = document.getElementById('modal-custom');
-      const confirmBtn = document.getElementById('modal-confirm');
-
-      if (tag) {
-        tag.innerHTML = `<i class="ti ${room.icon}"></i> ${escHtml(room.label)}`;
-        tag.style.cssText = `background:${room.color}18;color:${room.color};border:1px solid ${room.color}40`;
-      }
-      if (nameEl) nameEl.textContent = item.n;
-
-      const stores = [...getStoresForItem(item), STORES_MODAL_EXTRA];
-      if (storesEl) {
-        storesEl.innerHTML = stores.map(s =>
-          `<button class="modal-store-btn" data-sid="${s.id}" style="--sc:${s.color}"
-                   onclick="selectStore('${s.id}','${s.color}')">${s.label}</button>`
-        ).join('');
-      }
-      if (customEl) customEl.style.display = 'none';
-      if (confirmBtn) confirmBtn.disabled = true;
-      const priceEl = document.getElementById('modal-price-input');
+      const tag       = document.getElementById('modal-room-tag');
+      const nameEl    = document.getElementById('modal-item-name');
+      const subtitleEl= document.getElementById('modal-subtitle');
+      const storesEl  = document.getElementById('modal-stores');
+      const customEl  = document.getElementById('modal-custom');
+      const customInp = document.getElementById('modal-custom-input');
+      const confirmBtn= document.getElementById('modal-confirm');
+      const confirmIcon = document.getElementById('modal-confirm-icon');
+      const confirmLabel = document.getElementById('modal-confirm-label');
+      const priceEl   = document.getElementById('modal-price-input');
       if (priceEl) priceEl.value = '';
+
+      if (parsed.isPhase) {
+        modalMode = 'task';
+        const phase = PHASES.find(p => p.id === parsed.phaseId);
+        if (!phase) return;
+        const task = phase.tasks[parsed.taskIdx];
+        if (tag) {
+          tag.innerHTML = `<i class="ti ${phase.icon}"></i> ${escHtml(phase.label)}`;
+          tag.style.cssText = `background:${phase.color}18;color:${phase.color};border:1px solid ${phase.color}40`;
+        }
+        if (nameEl) nameEl.textContent = task;
+        if (subtitleEl) subtitleEl.textContent = 'Firma / zodpovedná osoba (voliteľné)';
+        if (storesEl) storesEl.style.display = 'none';
+        if (customEl) { customEl.style.display = 'block'; }
+        if (customInp) { customInp.placeholder = 'Napr. Murári Novák, vlastná práca…'; customInp.value = ''; }
+        if (confirmBtn) confirmBtn.disabled = false;
+        if (confirmIcon) confirmIcon.className = 'ti ti-circle-check';
+        if (confirmLabel) confirmLabel.textContent = 'Označiť hotové';
+      } else {
+        modalMode = 'purchase';
+        const { roomId, ci, ii } = parsed;
+        const room = ROOMS.find(r=>r.id===roomId);
+        if (!room) return;
+        const item = room.categories[ci]?.items[ii];
+        if (!item) return;
+        if (tag) {
+          tag.innerHTML = `<i class="ti ${room.icon}"></i> ${escHtml(room.label)}`;
+          tag.style.cssText = `background:${room.color}18;color:${room.color};border:1px solid ${room.color}40`;
+        }
+        if (nameEl) nameEl.textContent = item.n;
+        if (subtitleEl) subtitleEl.textContent = 'Odkiaľ si to kúpil/a?';
+        if (storesEl) {
+          storesEl.style.display = '';
+          const stores = [...getStoresForItem(item), STORES_MODAL_EXTRA];
+          storesEl.innerHTML = stores.map(s =>
+            `<button class="modal-store-btn" data-sid="${s.id}" style="--sc:${s.color}"
+                     onclick="selectStore('${s.id}','${s.color}')">${s.label}</button>`
+          ).join('');
+        }
+        if (customEl) customEl.style.display = 'none';
+        if (customInp) { customInp.placeholder = 'Názov obchodu…'; }
+        if (confirmBtn) confirmBtn.disabled = true;
+        if (confirmIcon) confirmIcon.className = 'ti ti-shopping-cart';
+        if (confirmLabel) confirmLabel.textContent = 'Potvrdiť nákup';
+      }
 
       document.getElementById('modal-overlay').classList.add('open');
     }
@@ -1291,16 +1645,23 @@
     };
 
     window.confirmCheck = async function() {
-      if (!pendingKey || !selectedStoreId) return;
-      let store = selectedStoreId;
-      if (store === 'ine') {
-        const ci = document.getElementById('modal-custom-input');
-        store = ci?.value.trim() || 'Iné';
-      } else {
-        store = STORES.find(s=>s.id===selectedStoreId)?.label || selectedStoreId;
-      }
+      if (!pendingKey) return;
+      let store, price;
       const priceInput = document.getElementById('modal-price-input');
-      const price = priceInput?.value ? parseFloat(priceInput.value) : null;
+      price = priceInput?.value ? parseFloat(priceInput.value) : null;
+
+      if (modalMode === 'task') {
+        const ci = document.getElementById('modal-custom-input');
+        store = ci?.value.trim() || 'Hotové';
+      } else {
+        if (!selectedStoreId) return;
+        if (selectedStoreId === 'ine') {
+          const ci = document.getElementById('modal-custom-input');
+          store = ci?.value.trim() || 'Iné';
+        } else {
+          store = STORES.find(s=>s.id===selectedStoreId)?.label || selectedStoreId;
+        }
+      }
       const key = pendingKey;
       closeModal();
       await saveItem(key, store, price);
@@ -1400,7 +1761,7 @@
 
       // Delegated content events
       document.getElementById('content')?.addEventListener('click', async e => {
-        // Checkbox
+        // Checkbox (shopping items + phase tasks)
         const cb = e.target.closest('.checkbox[data-key]');
         if (cb) {
           const key = cb.dataset.key;
@@ -1409,6 +1770,15 @@
           } else {
             openModal(key);
           }
+          return;
+        }
+        // Phase collapse
+        const phaseColBtn = e.target.closest('[data-phase-collapse]');
+        if (phaseColBtn) {
+          const k = phaseColBtn.dataset.phaseCollapse;
+          state.collapsed[k] = !state.collapsed[k];
+          localStorage.setItem(COLLAPSE_KEY, JSON.stringify(state.collapsed));
+          phaseColBtn.closest('.phase-section').classList.toggle('phase-collapsed', !!state.collapsed[k]);
           return;
         }
         // Category collapse
@@ -1426,8 +1796,6 @@
           const { action, room: roomId } = actionBtn.dataset;
           const room = ROOMS.find(r=>r.id===roomId); if(!room) return;
           if (action === 'check-all') {
-            // Can't easily batch with store info – open individual modals would be bad UX.
-            // Instead, mark all as "Iné" with current user. User can update individually.
             const promises = [];
             room.categories.forEach((cat,ci) => cat.items.forEach((_,ii) => {
               const key = itemKey(roomId,ci,ii);
