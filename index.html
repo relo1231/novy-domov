@@ -375,6 +375,38 @@
     .btn-modal-confirm:hover { background: #178a65; }
     .btn-modal-confirm:disabled { opacity: .45; cursor: not-allowed; }
 
+    /* ── PRICE INPUT ── */
+    .modal-price { padding: 0 22px 14px; }
+    .modal-price-label { display: block; font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .05em; }
+    .modal-price-wrap {
+      display: flex; align-items: center;
+      border: 1px solid var(--border); border-radius: 8px;
+      background: var(--bg-subtle); overflow: hidden; transition: border-color .15s;
+    }
+    .modal-price-wrap:focus-within { border-color: #1D9E75; background: var(--bg); }
+    .modal-price-input {
+      flex: 1; height: 42px; padding: 0 12px; border: none;
+      background: transparent; color: var(--text);
+      font-family: 'DM Sans', sans-serif; font-size: 17px; font-weight: 600; outline: none;
+    }
+    .modal-price-input::placeholder { color: var(--text-dim); font-size: 14px; font-weight: 400; }
+    .modal-price-eur {
+      padding: 0 14px; font-size: 15px; font-weight: 700; color: var(--text-muted);
+      border-left: 1px solid var(--border); height: 42px;
+      display: flex; align-items: center; background: var(--bg-subtle);
+    }
+
+    /* ── SPENT TOTALS ── */
+    .progress-spent {
+      font-size: 12px; font-weight: 600; color: #1D9E75;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .room-spent {
+      font-size: 12px; font-weight: 600; color: #1D9E75;
+      display: flex; align-items: center; gap: 3px;
+    }
+    .item-price { color: #1D9E75; font-weight: 600; }
+
     /* ── EMPTY + MISC ── */
     .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
     .empty-state .ti { font-size: 40px; margin-bottom: 12px; display: block; opacity: .4; }
@@ -464,6 +496,14 @@
       <div class="modal-stores" id="modal-stores"></div>
       <div class="modal-custom" id="modal-custom" style="display:none">
         <input type="text" class="modal-custom-input" id="modal-custom-input" placeholder="Názov obchodu…">
+      </div>
+      <div class="modal-price">
+        <label class="modal-price-label">Cena (voliteľné)</label>
+        <div class="modal-price-wrap">
+          <input type="number" class="modal-price-input" id="modal-price-input"
+                 min="0" step="0.01" placeholder="0,00">
+          <span class="modal-price-eur">€</span>
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn-modal-cancel" onclick="closeModal()">Zrušiť</button>
@@ -716,7 +756,7 @@
     const state = {
       activeRoom: 'all', search: '', filter: 'all',
       darkMode: false, collapsed: {},
-      items: {}   // key -> { checked_by, checked_at, store }
+      items: {}   // key -> { checked_by, checked_at, store, price }
     };
 
     // ═══════════════════════════════════════════════════════════════
@@ -739,17 +779,17 @@
       if (error) { console.error('Load error:', error); return; }
       state.items = {};
       (data || []).forEach(row => {
-        state.items[row.key] = { checked_by: row.checked_by, checked_at: row.checked_at, store: row.store };
+        state.items[row.key] = { checked_by: row.checked_by, checked_at: row.checked_at, store: row.store, price: row.price ?? null };
       });
     }
 
-    async function saveItem(key, store) {
+    async function saveItem(key, store, price = null) {
       const displayName = USER_DISPLAY[currentUser.email] || currentUser.email.split('@')[0];
       const now = new Date().toISOString();
-      const row = { key, checked_by: displayName, checked_by_email: currentUser.email, checked_at: now, store, updated_at: now };
+      const row = { key, checked_by: displayName, checked_by_email: currentUser.email, checked_at: now, store, price: price || null, updated_at: now };
       const { error } = await db.from('checklist_items').upsert(row);
       if (error) { console.error('Save error:', error); return; }
-      state.items[key] = { checked_by: displayName, checked_at: now, store };
+      state.items[key] = { checked_by: displayName, checked_at: now, store, price: price || null };
       updateItemDOM(key);
       updateAllProgress();
       if (state.filter === 'unchecked' || state.filter === 'checked') refreshContent();
@@ -768,14 +808,14 @@
       db.channel('checklist_sync')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'checklist_items' }, p => {
           const r = p.new;
-          state.items[r.key] = { checked_by: r.checked_by, checked_at: r.checked_at, store: r.store };
+          state.items[r.key] = { checked_by: r.checked_by, checked_at: r.checked_at, store: r.store, price: r.price ?? null };
           updateItemDOM(r.key, true);
           updateAllProgress();
           if (state.filter === 'unchecked' || state.filter === 'checked') refreshContent();
         })
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'checklist_items' }, p => {
           const r = p.new;
-          state.items[r.key] = { checked_by: r.checked_by, checked_at: r.checked_at, store: r.store };
+          state.items[r.key] = { checked_by: r.checked_by, checked_at: r.checked_at, store: r.store, price: r.price ?? null };
           updateItemDOM(r.key, true);
           updateAllProgress();
         })
@@ -810,6 +850,26 @@
 
     function fmtDate(iso) {
       return new Date(iso).toLocaleDateString('sk-SK', { day: 'numeric', month: 'numeric', year: 'numeric' });
+    }
+
+    function formatPrice(p) {
+      if (!p && p !== 0) return '';
+      return Number(p).toLocaleString('sk-SK', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+    }
+
+    function getRoomTotal(room) {
+      let sum = 0;
+      room.categories.forEach((cat, ci) =>
+        cat.items.forEach((_, ii) => {
+          const m = state.items[itemKey(room.id, ci, ii)];
+          if (m?.price) sum += parseFloat(m.price);
+        })
+      );
+      return sum;
+    }
+
+    function getGrandTotal() {
+      return ROOMS.reduce((s, r) => s + getRoomTotal(r), 0);
     }
 
     function getRoomStats(room) {
@@ -874,12 +934,16 @@
       const chkSty = chk ? `style="--check-color:${room.color}"` : '';
       let metaHTML = '';
       if (chk && meta) {
+        const priceChip = meta.price
+          ? `<span class="meta-sep">·</span><span class="item-price"><i class="ti ti-currency-euro"></i> ${formatPrice(meta.price)}</span>`
+          : '';
         metaHTML = `<div class="item-meta">
           <span><i class="ti ti-user"></i> ${escHtml(meta.checked_by)}</span>
           <span class="meta-sep">·</span>
           <span><i class="ti ti-calendar"></i> ${fmtDate(meta.checked_at)}</span>
           <span class="meta-sep">·</span>
           <span><i class="ti ti-building-store"></i> ${escHtml(meta.store)}</span>
+          ${priceChip}
         </div>`;
       }
       return `<div class="item-row${chk?' item-checked':''}" data-key="${key}">
@@ -937,6 +1001,7 @@
               <h2 class="room-title">${escHtml(room.label)}</h2>
               <div class="room-progress-text" id="rpt-${room.id}">${done} / ${total} položiek</div>
             </div>
+            ${getRoomTotal(room) > 0 ? `<div class="room-spent" id="rsp-${room.id}"><i class="ti ti-currency-euro"></i> ${formatPrice(getRoomTotal(room))}</div>` : `<div class="room-spent" id="rsp-${room.id}" style="display:none"></div>`}
           </div>
           <div class="room-header-right">
             <div class="room-progress-track">
@@ -992,10 +1057,16 @@
       const {total,done} = getTotalStats();
       const pct = total>0?Math.round((done/total)*100):0;
       const fill = pct===100?'#22c55e':'#1D9E75';
+      const grand = getGrandTotal();
       return `<div class="progress-sticky">
         <div class="progress-info">
           <span class="progress-label">Celkový postup</span>
-          <span class="progress-count" id="progress-count">${done} / ${total} položiek (${pct}%)</span>
+          <div style="display:flex;align-items:center;gap:12px">
+            <span class="progress-count" id="progress-count">${done} / ${total} (${pct}%)</span>
+            <span class="progress-spent" id="progress-spent" ${grand===0?'style="display:none"':''}>
+              <i class="ti ti-currency-euro"></i> ${formatPrice(grand)}
+            </span>
+          </div>
         </div>
         <div class="progress-track">
           <div class="progress-fill" id="progress-fill" style="width:${pct}%;background:${fill}"></div>
@@ -1076,8 +1147,14 @@
       const fill = pct===100?'#22c55e':'#1D9E75';
       const ce=document.getElementById('progress-count');
       const fe=document.getElementById('progress-fill');
-      if(ce) ce.textContent=`${done} / ${total} položiek (${pct}%)`;
+      if(ce) ce.textContent=`${done} / ${total} (${pct}%)`;
       if(fe){fe.style.width=`${pct}%`;fe.style.background=fill;}
+      const grand = getGrandTotal();
+      const spentEl = document.getElementById('progress-spent');
+      if (spentEl) {
+        spentEl.style.display = grand > 0 ? '' : 'none';
+        spentEl.innerHTML = `<i class="ti ti-currency-euro"></i> ${formatPrice(grand)}`;
+      }
       ROOMS.forEach(room=>{
         const s=getRoomStats(room);
         const rp=s.total>0?Math.round((s.done/s.total)*100):0;
@@ -1085,6 +1162,12 @@
         const pf=document.getElementById(`rpf-${room.id}`);
         if(pt) pt.textContent=`${s.done} / ${s.total} položiek`;
         if(pf) pf.style.width=`${rp}%`;
+        const rTotal = getRoomTotal(room);
+        const rsp = document.getElementById(`rsp-${room.id}`);
+        if (rsp) {
+          rsp.style.display = rTotal > 0 ? '' : 'none';
+          rsp.innerHTML = `<i class="ti ti-currency-euro"></i> ${formatPrice(rTotal)}`;
+        }
       });
       document.querySelectorAll('.tab[data-room]').forEach(tab=>{
         const rid=tab.dataset.room; if(rid==='all') return;
@@ -1180,6 +1263,8 @@
       }
       if (customEl) customEl.style.display = 'none';
       if (confirmBtn) confirmBtn.disabled = true;
+      const priceEl = document.getElementById('modal-price-input');
+      if (priceEl) priceEl.value = '';
 
       document.getElementById('modal-overlay').classList.add('open');
     }
@@ -1214,9 +1299,11 @@
       } else {
         store = STORES.find(s=>s.id===selectedStoreId)?.label || selectedStoreId;
       }
+      const priceInput = document.getElementById('modal-price-input');
+      const price = priceInput?.value ? parseFloat(priceInput.value) : null;
       const key = pendingKey;
       closeModal();
-      await saveItem(key, store);
+      await saveItem(key, store, price);
     };
 
     // ═══════════════════════════════════════════════════════════════
@@ -1387,10 +1474,43 @@
 
     function doExport() {
       let text = 'NOVÝ DOMOV – Nákupný zoznam\n';
-      text += 'Nenakúpené položky\n';
       text += `Vygenerované: ${new Date().toLocaleDateString('sk-SK')}\n`;
       text += '═'.repeat(50) + '\n\n';
+
+      // Spending summary
+      const grand = getGrandTotal();
+      if (grand > 0) {
+        text += 'PREHĽAD VÝDAVKOV\n' + '─'.repeat(30) + '\n';
+        ROOMS.forEach(room => {
+          const t = getRoomTotal(room);
+          if (t > 0) text += `  ${room.label.padEnd(20)} ${formatPrice(t)}\n`;
+        });
+        text += `  ${'CELKOVO'.padEnd(20)} ${formatPrice(grand)}\n\n`;
+        text += '═'.repeat(50) + '\n\n';
+      }
+
+      // Bought items
+      let boughtText = '';
+      ROOMS.forEach(room => {
+        const lines = [];
+        room.categories.forEach((cat,ci) => {
+          const catLines = [];
+          cat.items.forEach((item,ii) => {
+            const meta = state.items[itemKey(room.id,ci,ii)];
+            if (meta) {
+              const price = meta.price ? `  ${formatPrice(meta.price)}` : '';
+              catLines.push(`    ✓ ${item.n}  (${meta.checked_by}, ${fmtDate(meta.checked_at)}, ${meta.store})${price}`);
+            }
+          });
+          if (catLines.length) { lines.push(`  ${cat.label}:`); lines.push(...catLines); }
+        });
+        if (lines.length) boughtText += `${room.label}\n${'─'.repeat(30)}\n${lines.join('\n')}\n\n`;
+      });
+      if (boughtText) text += 'NAKÚPENÉ\n' + '═'.repeat(50) + '\n\n' + boughtText;
+
+      // Remaining items
       let anyItem = false;
+      let remainText = '';
       ROOMS.forEach(room => {
         const lines = [];
         room.categories.forEach((cat,ci) => {
@@ -1405,9 +1525,10 @@
           });
           if (catLines.length) { lines.push(`  ${cat.label}:`); lines.push(...catLines); }
         });
-        if (lines.length) { anyItem=true; text+=`${room.label}\n${'─'.repeat(30)}\n${lines.join('\n')}\n\n`; }
+        if (lines.length) { anyItem=true; remainText+=`${room.label}\n${'─'.repeat(30)}\n${lines.join('\n')}\n\n`; }
       });
-      if (!anyItem) text += 'Všetky položky sú nakúpené! 🎉\n';
+      if (anyItem) text += 'ZOSTATOK NA NÁKUP\n' + '═'.repeat(50) + '\n\n' + remainText;
+      if (!anyItem && !boughtText) text += 'Žiadne položky.\n';
       const blob=new Blob([text],{type:'text/plain;charset=utf-8'});
       const url=URL.createObjectURL(blob);
       const a=document.createElement('a');
