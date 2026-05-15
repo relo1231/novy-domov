@@ -380,17 +380,70 @@
     .empty-state .ti { font-size: 40px; margin-bottom: 12px; display: block; opacity: .4; }
 
     @media (max-width: 660px) {
+      /* store badges → cart dropdown */
       .store-badges { display: none; }
       .store-mobile { display: block; }
-      .header { padding: 0 14px; }
+
+      /* header */
+      .header { padding: 0 12px; gap: 6px; --header-h: 56px; height: 56px; }
+      .header-title { font-size: 16px; }
+      .header-subtitle { display: none; }
+      .user-name { display: none; }
+      .user-chip { padding: 0 6px; }
       .btn-export span { display: none; }
-      .content { padding: 10px 10px 80px; }
-      .filter-bar { padding: 10px 12px; }
+      .btn-export { padding: 0 10px; }
+      .btn-icon { width: 32px; height: 32px; font-size: 16px; }
+
+      /* progress */
+      .progress-sticky { padding: 8px 14px; --progress-h: 46px; }
+
+      /* tabs */
+      .tab-bar { padding: 5px 8px; }
+      .tab { padding: 5px 9px; font-size: 12px; gap: 4px; }
+
+      /* filter bar */
+      .filter-bar { padding: 10px 12px; gap: 8px; }
+      .filter-pills {
+        flex-wrap: nowrap; overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none; padding-bottom: 2px;
+      }
+      .filter-pills::-webkit-scrollbar { display: none; }
+
+      /* content */
+      .content { padding: 10px 10px 88px; }
+
+      /* room header */
+      .room-header { padding: 12px 14px; flex-wrap: wrap; gap: 8px; }
+      .room-header-right { width: 100%; justify-content: space-between; }
       .room-progress-track { display: none; }
-      .room-header { padding: 12px 14px; }
-      .item-row { padding: 9px 10px 9px 14px; }
-      .tab-bar { padding: 6px 8px; }
-      .modal-stores { grid-template-columns: 1fr 1fr; }
+      .btn-label { display: none; }
+      .btn-room-action { padding: 6px 10px; }
+
+      /* items */
+      .item-row { padding: 8px 10px 8px 12px; gap: 7px; }
+      .item-meta { font-size: 10px; gap: 4px; }
+
+      /* modal → bottom sheet */
+      .modal-overlay { align-items: flex-end; padding: 0; }
+      .modal {
+        border-radius: 20px 20px 0 0; max-width: 100%;
+        transform: translateY(100%);
+      }
+      .modal-overlay.open .modal { transform: translateY(0); }
+      .modal-header { padding: 20px 18px 0; }
+      .modal-stores { padding: 12px 18px; }
+      .modal-custom { padding: 0 18px 8px; }
+      .modal-footer { padding: 10px 18px 36px; }
+    }
+
+    /* icon-only tabs on very small phones */
+    @media (max-width: 420px) {
+      .tab-label { display: none; }
+      .tab { padding: 6px 8px; gap: 3px; }
+      .priority-badge { font-size: 10px; padding: 2px 6px; }
+      .room-title { font-size: 15px; }
+      .category-title { font-size: 11px; }
     }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -891,10 +944,10 @@
             </div>
             <div class="room-actions">
               <button class="btn-room-action" data-action="check-all" data-room="${room.id}">
-                <i class="ti ti-circle-check"></i> Všetko
+                <i class="ti ti-circle-check"></i><span class="btn-label"> Všetko</span>
               </button>
               <button class="btn-room-action btn-room-reset" data-action="reset" data-room="${room.id}">
-                <i class="ti ti-refresh"></i> Reset
+                <i class="ti ti-refresh"></i><span class="btn-label"> Reset</span>
               </button>
             </div>
           </div>
@@ -920,7 +973,7 @@
         <div class="header-right">
           <div class="user-chip">
             <div class="user-avatar">${initial}</div>
-            ${displayName}
+            <span class="user-name">${escHtml(displayName)}</span>
           </div>
           <button class="btn-icon" id="btn-dark" title="Tmavý režim">
             <i class="ti ${state.darkMode?'ti-sun':'ti-moon'}"></i>
@@ -960,7 +1013,7 @@
         const badge  = t.stats?`<span class="tab-badge">${t.stats.done}/${t.stats.total}</span>`:'';
         return `<button class="tab${active?' tab-active':''}" data-room="${t.id}"
                   ${active?`style="--tab-color:${t.color}"`:''}>
-          <i class="ti ${t.icon}"></i><span>${t.label}</span>${badge}
+          <i class="ti ${t.icon}"></i><span class="tab-label">${t.label}</span>${badge}
         </button>`;
       }).join('');
       return `<div class="tab-bar-wrapper"><div class="tab-bar" id="tab-bar">${items}</div></div>`;
